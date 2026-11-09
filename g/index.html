@@ -25,7 +25,7 @@
   var code = location.hash ? location.hash.substring(1) : "";
   var play = "https://play.google.com/store/apps/details?id=ro.ovidiu.seva";
   if (!code) { document.getElementById("open").style.display = "none"; return; }
-  var intent = "intent://g/" + code + "#Intent;scheme=raogift;package=ro.ovidiu.seva;S.browser_fallback_url=" + encodeURIComponent(play) + ";end";
+  var intent = "intent://g/" + code + "#Intent;scheme=seva;package=ro.ovidiu.seva;S.browser_fallback_url=" + encodeURIComponent(play) + ";end";
   document.getElementById("open").href = intent;
   try {
     var b64 = code.replace(/-/g, "+").replace(/_/g, "/");
