@@ -35,11 +35,13 @@
     var dv = new DataView(bytes.buffer);
     var version = bytes[0];
     var o = 1 + 8;
-    var ms = Number(dv.getBigInt64(o)); o += 8 + (version >= 2 ? 4 : 2);
+    var ms = Number(dv.getBigInt64(o)); o += 8 + (version >= 2 ? 4 : 2) + (version >= 3 ? 16 : 0);
     var alen = bytes[o]; o += 1;
-    var author = new TextDecoder("utf-8").decode(bytes.slice(o, o + alen));
+    var author = new TextDecoder("utf-8").decode(bytes.slice(o, o + alen)); o += alen;
+    var who = "";
+    if (version >= 3) { var wlen = bytes[o]; o += 1; who = new TextDecoder("utf-8").decode(bytes.slice(o, o + wlen)); }
     var date = new Date(ms).toLocaleString("ro-RO", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
-    document.getElementById("who").textContent = (author ? author + " · " : "") + date;
+    document.getElementById("who").textContent = (author ? author + " · " : "") + date + (who && who !== author ? " · trimis de " + who : "");
   } catch (e) {}
   if (/Android/i.test(navigator.userAgent)) { setTimeout(function () { location.href = intent; }, 600); }
 })();
