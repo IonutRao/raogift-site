@@ -18,13 +18,12 @@
 <p id="who" class="sig"></p>
 <p>Cineva ți-a dăruit un tablou făcut din gestul mâinii lui. Ca să îl adaugi în colecția ta, deschide-l în aplicația Seva.</p>
 <a id="open" class="btn" href="#">Deschide în aplicație</a>
-<a id="play" class="btn soft" href="https://play.google.com/apps/testing/ro.ovidiu.seva">Nu am aplicația: înscrie-te ca tester și instalează</a>
-<p class="muted" id="testing">Seva este deocamdată în testare. Apasă „Deveniți tester”, instalează aplicația din Google Play, apoi deschide din nou acest link ca să primești tabloul.</p>
+<a id="play" class="btn soft" href="https://play.google.com/store/apps/details?id=ro.ovidiu.seva">Nu am aplicația: instalează din Google Play</a>
 <p class="muted">Tabloul renaște identic pe telefonul tău, din parametrii lui. Aplicația nu cere permisiuni și nu are nevoie de internet.</p>
 <script>
 (function () {
   var code = location.hash ? location.hash.substring(1) : "";
-  var play = "https://play.google.com/apps/testing/ro.ovidiu.seva"; // pe durata testării; după lansare: https://play.google.com/store/apps/details?id=ro.ovidiu.seva
+  var play = "https://play.google.com/store/apps/details?id=ro.ovidiu.seva";
   if (!code) { document.getElementById("open").style.display = "none"; return; }
   var intent = "intent://g/" + code + "#Intent;scheme=seva;package=ro.ovidiu.seva;S.browser_fallback_url=" + encodeURIComponent(play) + ";end";
   document.getElementById("open").href = intent;
