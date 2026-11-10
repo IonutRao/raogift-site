@@ -11,12 +11,17 @@
   .btn.soft { background:transparent; color:#F2EFE6; border:1px solid #4A4A55; }
   .muted { color:#8A90A3; font-size: 14px; margin-top: 24px; }
   .sig { font-style: italic; color:#F1C27D; }
+  .back { border:1px solid #3A3942; border-radius: 8px; padding: 18px 20px; margin: 22px 0 6px; background:#1A1920; }
+  .back .label { color:#8A90A3; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; margin: 0 0 8px; }
+  .back .note { font-family: Georgia, "Times New Roman", serif; font-style: italic; font-size: 19px; color:#F2EFE6; margin: 0 0 10px; white-space: pre-wrap; }
+  .back .sig { font-size: 14px; margin: 0; }
 </style>
 </head>
 <body>
 <h1>Un tablou pentru tine</h1>
 <p id="who" class="sig"></p>
 <p>Cineva ți-a dăruit un tablou făcut din gestul mâinii lui. Ca să îl adaugi în colecția ta, deschide-l în aplicația Seva.</p>
+<div id="back" class="back" style="display:none"><p class="label">Pe spate</p><p id="note" class="note"></p><p id="noteby" class="sig"></p></div>
 <a id="open" class="btn" href="#">Deschide în aplicație</a>
 <a id="play" class="btn soft" href="https://play.google.com/store/apps/details?id=ro.ovidiu.seva">Nu am aplicația: instalează din Google Play</a>
 <p class="muted">Tabloul renaște identic pe telefonul tău, din parametrii lui. Aplicația nu cere permisiuni și nu are nevoie de internet.</p>
@@ -39,7 +44,20 @@
     var alen = bytes[o]; o += 1;
     var author = new TextDecoder("utf-8").decode(bytes.slice(o, o + alen)); o += alen;
     var who = "";
-    if (version >= 3) { var wlen = bytes[o]; o += 1; who = new TextDecoder("utf-8").decode(bytes.slice(o, o + wlen)); }
+    if (version >= 3) { var wlen = bytes[o]; o += 1; who = new TextDecoder("utf-8").decode(bytes.slice(o, o + wlen)); o += wlen; }
+    if (version >= 4) {
+      var noteAt = Number(dv.getBigInt64(o)); o += 8;
+      var nlen = dv.getUint16(o); o += 2;
+      var note = new TextDecoder("utf-8").decode(bytes.slice(o, o + nlen)); o += nlen;
+      var blen = bytes[o]; o += 1;
+      var by = new TextDecoder("utf-8").decode(bytes.slice(o, o + blen));
+      if (note.trim()) {
+        var nd = new Date(noteAt).toLocaleString("ro-RO", { day: "numeric", month: "long", year: "numeric" });
+        document.getElementById("note").textContent = "„" + note + "”";
+        document.getElementById("noteby").textContent = (by ? by + " · " : "") + nd;
+        document.getElementById("back").style.display = "block";
+      }
+    }
     var date = new Date(ms).toLocaleString("ro-RO", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
     document.getElementById("who").textContent = (author ? author + " · " : "") + date + (who && who !== author ? " · trimis de " + who : "");
   } catch (e) {}
