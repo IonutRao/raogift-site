@@ -50,11 +50,17 @@
       var nlen = dv.getUint16(o); o += 2;
       var note = new TextDecoder("utf-8").decode(bytes.slice(o, o + nlen)); o += nlen;
       var blen = bytes[o]; o += 1;
-      var by = new TextDecoder("utf-8").decode(bytes.slice(o, o + blen));
-      if (note.trim()) {
-        var nd = new Date(noteAt).toLocaleString("ro-RO", { day: "numeric", month: "long", year: "numeric" });
-        document.getElementById("note").textContent = "„" + note + "”";
-        document.getElementById("noteby").textContent = (by ? by + " · " : "") + nd;
+      var by = new TextDecoder("utf-8").decode(bytes.slice(o, o + blen)); o += blen;
+      var flags = 0;
+      if (version >= 5) { o += 1; }                 // generația compozitorului
+      if (version >= 6) { flags = bytes[o]; o += 1; }
+      var burned = (flags & 2) !== 0, secret = (flags & 1) !== 0;
+      // darul pleacă în plic: pagina nu arată nici tabloul, nici gândul, doar că există
+      if (note.trim() || burned) {
+        document.getElementById("note").textContent = burned
+          ? "Pe spate a fost un gând top secret. A ars."
+          : (secret ? "Pe spate e un gând top secret: se citește o singură dată, în Seva." : "Pe spate e scris un gând. Îl citești în Seva.");
+        document.getElementById("noteby").textContent = by ? "de la " + by : "";
         document.getElementById("back").style.display = "block";
       }
     }
