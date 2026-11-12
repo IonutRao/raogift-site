@@ -29,7 +29,14 @@
   #pic { display:none; margin: 0 auto; opacity:0; transform: translateY(22px) scale(.965);
          transition: transform .8s cubic-bezier(.2,.75,.2,1), opacity .7s ease; }
   #pic.shown { opacity:1; transform:none; }
-  #pic canvas { display:block; width:100%; height:auto; border-radius:3px; box-shadow: 0 14px 44px rgba(0,0,0,.6); }
+  #pic { perspective: 1500px; -webkit-perspective: 1500px; }
+  #card { position:relative; transform-style: preserve-3d; -webkit-transform-style: preserve-3d; transition: transform .8s cubic-bezier(.35,.1,.2,1); }
+  #card.turned { transform: rotateY(180deg); }
+  #card.flips { cursor:pointer; -webkit-tap-highlight-color: transparent; }
+  #pic canvas { display:block; width:100%; height:auto; border-radius:3px; box-shadow: 0 14px 44px rgba(0,0,0,.6);
+                backface-visibility:hidden; -webkit-backface-visibility:hidden; }
+  #backc { position:absolute; left:0; top:0; transform: rotateY(180deg); }
+  #turn { color:var(--cream); font-style:italic; font-size:15px; margin: 14px 0 0; opacity:.8; }
   #from { color:var(--cream); font-style:italic; font-size:15px; margin: 14px 0 0; }
   #back { color:var(--pale); font-style:italic; font-size:15px; margin: 6px 0 0; }
   #say { color:var(--pale); font-size:16px; margin: 18px 0 0; }
@@ -40,7 +47,7 @@
   .muted { color:var(--muted); font-size:13.5px; margin-top:16px; }
   #foot { margin-top:30px; }
   [hidden] { display:none !important; }
-  @media (prefers-reduced-motion: reduce) { #env, #pic { transition:none; } #env.sway, #hint { animation:none; } }
+  @media (prefers-reduced-motion: reduce) { #env, #pic, #card { transition:none; } #env.sway, #hint { animation:none; } }
 </style>
 </head>
 <body>
@@ -48,9 +55,10 @@
   <p class="brand">SEVA</p>
   <div id="stage" hidden>
     <button id="env" type="button"><canvas id="envc" width="1200" height="630"></canvas></button>
-    <div id="pic"><canvas id="art"></canvas></div>
+    <div id="pic"><div id="card"><canvas id="art"></canvas><canvas id="backc" hidden></canvas></div></div>
   </div>
   <p id="hint" hidden></p>
+  <p id="turn" hidden></p>
   <p id="from" hidden></p>
   <p id="back" hidden></p>
   <h1 id="head" hidden></h1>
@@ -61,7 +69,7 @@
   <p id="update" class="muted" hidden></p>
   <p id="foot" class="muted" hidden></p>
 </main>
-<script src="seva.js?v=2"></script>
+<script src="seva.js?v=3"></script>
 <script>
 (function () {
   "use strict";
@@ -70,7 +78,8 @@
     ro: {
       title: "Un tablou pentru tine", envFrom: "de la %s", envOpen: "atinge ca să-l deschizi", secret: "TOP SECRET",
       hint: "Atinge plicul ca să-l deschizi", envLabel: "Deschide plicul", from: "de la %s",
-      back: "Pe spate e scris un gând.", backSecret: "Pe spate e un gând top secret.", backBurned: "Pe spate a fost un gând top secret.", inSeva: " Îl citești în Seva.",
+      turn: "Atinge tabloul ca să-l întorci", cardLabel: "Întoarce tabloul",
+      back: "Pe spate e scris un gând.", backSecret: "Pe spate e un gând top secret. Se citește doar în Seva.", backBurned: "Pe spate a fost un gând top secret.",
       open: "Deschide în Seva", play: "Seva în Google Play",
       android: "În Seva, tabloul intră în colecția ta. Dacă nu ai aplicația, butonul te duce în Google Play.",
       update: "Ai deja Seva și tabloul nu se deschide în ea? Actualizeaz-o din Google Play, apoi deschide din nou linkul.",
@@ -85,7 +94,8 @@
     en: {
       title: "A piece for you", envFrom: "from %s", envOpen: "tap to open", secret: "TOP SECRET",
       hint: "Tap the envelope to open it", envLabel: "Open the envelope", from: "from %s",
-      back: "There is a thought written on the back.", backSecret: "There is a top secret thought on the back.", backBurned: "There was a top secret thought on the back.", inSeva: " You can read it in Seva.",
+      turn: "Tap the piece to turn it over", cardLabel: "Turn the piece over",
+      back: "There is a thought written on the back.", backSecret: "There is a top secret thought on the back. It can only be read in Seva.", backBurned: "There was a top secret thought on the back.",
       open: "Open in Seva", play: "Seva on Google Play",
       android: "In Seva, the piece joins your collection. If you do not have the app, the button takes you to Google Play.",
       update: "You already have Seva and the piece does not open in it? Update it from Google Play, then open the link again.",
@@ -152,7 +162,7 @@
   show("foot", T.foot);
 
   // tabloul: cât încape pe ecran, în raportul unei cărți poștale ținute în picioare
-  var drawn = false, failed = false;
+  var drawn = false, failed = false, hasBack = false;
   function drawArt() {
     if (drawn || failed) return;
     try {
@@ -166,6 +176,18 @@
       var dp = dpr * cssW / Math.min(window.innerWidth || cssW, 440);
       Seva.render(new Seva.Canvas2D(art.getContext("2d"), w, h, mk), w, h, dp, params);
       drawn = true;
+      // spatele, doar pentru un gând obișnuit: cel top secret se citește numai în Seva
+      if (piece.note && !piece.secret && !piece.burned) {
+        try {
+          var backc = $("backc");
+          backc.width = w; backc.height = h;
+          var bcv = new Seva.Canvas2D(backc.getContext("2d"), w, h, mk);
+          var at = piece.noteAt > 0 ? piece.noteAt : piece.createdAt;
+          Seva.renderBack(bcv, w, h, dp, params, piece.note, Seva.signature(piece.noteBy || "", at, lang), Seva.stampDate(at), Seva.stampFor(bcv, w, h, dp, params), null);
+          backc.hidden = false;
+          hasBack = true;
+        } catch (e) { hasBack = false; }
+      }
     } catch (e) { failed = true; }
   }
   setTimeout(drawArt, 120);
@@ -185,8 +207,18 @@
       void pic.offsetWidth;
       pic.classList.add("shown");
       if (piece.from && piece.from !== piece.author) show("from", T.from.replace("%s", piece.from));
-      if (piece.note || piece.burned) {
-        show("back", (piece.burned ? T.backBurned : piece.secret ? T.backSecret : T.back) + (android && !piece.burned ? T.inSeva : ""));
+      if (hasBack) {
+        // ca în aplicație: tabloul se întoarce singur o dată, apoi la fiecare atingere
+        var card = $("card");
+        card.classList.add("flips");
+        card.setAttribute("role", "button"); card.setAttribute("tabindex", "0"); card.setAttribute("aria-label", T.cardLabel);
+        var flip = function () { card.classList.toggle("turned"); };
+        card.addEventListener("click", flip);
+        card.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); flip(); } });
+        show("turn", T.turn);
+        setTimeout(function () { if (!card.classList.contains("turned")) flip(); }, 1500);
+      } else if (piece.note || piece.burned) {
+        show("back", piece.burned ? T.backBurned : piece.secret ? T.backSecret : T.back);
       }
     }, window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 430);
   });

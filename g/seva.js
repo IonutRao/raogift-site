@@ -497,7 +497,7 @@
   class NullCanvas {
     drawColor() {} drawRect() {} drawCircle() {} drawPath() {} drawOval() {} drawLine() {} drawRoundRect() {} drawText() {}
     save() {} restore() {} translate() {} scale() {} rotate() {} clipRect() {} saveLayerAlpha() {} saveLayerShadow() {}
-    offscreen() { return new NullCanvas(); } drawBitmap() {}
+    offscreen() { return new NullCanvas(); } drawBitmap() {} drawBitmapAt() {} drawNoteLine() {}
     measureText(str, p) { return f(str.length * p.size * (0.5 + (p.letterSpacing || 0))); }
   }
 
@@ -523,6 +523,8 @@
     saveLayerShadow(l, t, r, b, k) { this.lines.push("layer filter"); this.inner.saveLayerShadow(l, t, r, b, k); }
     offscreen(w, h) { return this.inner.offscreen(w, h); }
     measureText(str, p) { return this.inner.measureText(str, p); }
+    drawBitmapAt(bmp, x, y) { this.inner.drawBitmapAt(bmp, x, y); }
+    drawNoteLine(str, x, y, p) { this.inner.drawNoteLine(str, x, y, p); }
     drawBitmap(bmp, l, t, r, b, a) { this.lines.push(`bitmap ${bmp.w} ${bmp.h} ${a}`); this.inner.drawBitmap(bmp, l, t, r, b, a); }
   }
 
@@ -623,6 +625,8 @@
     /** Strat care devine umbră: tot ce se desenează în el ajunge negru, cu transparența înmulțită cu k. */
     saveLayerShadow(l, t, r, b, k) { this._layer({ shadow: k }); }
     offscreen(w, h) { const cnv = this.make(w, h); return new Canvas2D(cnv.getContext("2d"), w, h, this.make); }
+    drawBitmapAt(bmp, x, y) { this.ctx.drawImage(bmp.canvas, x, y); }
+    drawNoteLine(str, x, y, p) { this.drawText(str, x, y, p); }
     drawBitmap(bmp, l, t, r, b, a) {
       const c = this.ctx; c.save(); c.globalAlpha = a / 255; c.imageSmoothingEnabled = true;
       c.drawImage(bmp.canvas, 0, 0, bmp.w, bmp.h, l, t, r - l, b - t); c.restore();
@@ -1514,6 +1518,132 @@
     if (secret) secretStamp(cv, add(body.left, mul(7, u)), add(body.top, mul(8, u)), mul(34, u), mul(9.5, u), pal, secret);
   }
 
+
+  // ------------------------------------------------------------------ spatele cărții poștale (Composer.renderBack)
+
+  /** Fața în mic, ca timbru pentru spate: o cincime din lățime, desenată cu grosimile micșorate la fel. */
+  function stampFor(cv, w, h, dp, p) {
+    const sw = Math.max(trunc(mul(w, 0.2)), 8), sh = Math.max(trunc(div(mul(sw, h), w)), 8);
+    const st = cv.offscreen(sw, sh);
+    st.w = sw; st.h = sh;
+    render(st, sw, sh, div(mul(dp, sw), w), p);
+    return st;
+  }
+
+  /** Rupe gândul în rânduri care încap în lățime; rândurile scrise de om rămân rânduri. */
+  function wrapNote(cv, note, paint, width) {
+    const lines = [];
+    for (const para of String(note).split("\n")) {
+      let line = "";
+      for (const word of para.split(/\s+/).filter((x) => x.length)) {
+        const tryLine = line ? line + " " + word : word;
+        if (cv.measureText(tryLine, paint) <= width) { line = tryLine; continue; }
+        if (line) lines.push(line);
+        line = word;
+        // un cuvânt mai lat decât cartea se rupe pe litere
+        while (cv.measureText(line, paint) > width && line.length > 1) {
+          let k = line.length - 1;
+          while (k > 1 && cv.measureText(line.slice(0, k), paint) > width) k--;
+          lines.push(line.slice(0, k)); line = line.slice(k);
+        }
+      }
+      lines.push(line);
+    }
+    return lines;
+  }
+
+  /**
+   * Spatele: aceeași ramă și aceeași hârtie ca fața, un ecou foarte palid al compoziției ca filigran, gândul scris
+   * cu serif italic, semnatarul și data jos-dreapta, iar sus-dreapta fața în mic, ca timbru, cu ștampila datei.
+   */
+  function renderBack(cv, w, h, dp0, p, note, signed, stampDate, stamp, secret) {
+    const dp = f(dp0);
+    const pl = plan(w, h, p);
+    const r = pl.r, pal = pl.pal;
+    const inner = innerRect(w, h, pl);
+    const m = Math.min(w, h);
+    stroke.shader = null; fill.shader = null;
+    frameUnder(cv, w, h, dp, pl);
+    cv.save();
+    cv.clipRect(inner.left, inner.top, inner.right, inner.bottom);
+    background(cv, inner, dp, r, pal, pl.texture);
+
+    // filigranul: compoziția, mare și aproape ștearsă
+    const lay = layout(p.strokes, inner, pl.family, p.gen);
+    const dpE = mul(dp, lay.scale);
+    amount = lay.amount;
+    try {
+      if (lay.strokes.length > 0) {
+        const sinuous = mul(add(0.2, mul(r.nextFloat(), 0.8)), add(0.5, mul(sub(1, p.nervous), 0.8)));
+        const extraSmooth = pl.family === "RIBBONS" || pl.family === "WAVES" ? 0.5 : 0;
+        const spines = lay.strokes.map((s) => undulate(s, sinuous, r, dpE, Math.min(1, add(p.nervous, extraSmooth))));
+        cv.saveLayerAlpha(inner.left, inner.top, inner.right, inner.bottom, 0x1A);
+        scaleAt(cv, F(1.35), F(1.35), lay.cx, lay.cy);
+        draw(cv, dpE, new Random(long(p.seed * 13n + 5n)), pal, spines, p, pl.family, true);
+        cv.restore();
+      }
+    } finally { amount = 1; }
+
+    const inkColor = ink(pal);
+    const margin = mul(m, 0.09);
+    let textTop = add(inner.top, margin);
+
+    // timbrul: fața în mic, ușor înclinată, pe o margine de hârtie; ștampila rotundă peste colțul lui
+    if (stamp) {
+      const sw = stamp.w, sh = stamp.h;
+      const right = sub(inner.right, margin), top = add(inner.top, margin);
+      const e = mul(dp, 4);
+      cv.save();
+      rotateAt(cv, -3, sub(right, div(sw, 2)), add(top, div(sh, 2)));
+      fill.color = blend(pal.background, WHITE, 0.55);
+      cv.drawRect(sub(sub(right, sw), e), sub(top, e), add(right, e), add(add(top, sh), e), fill);
+      cv.drawBitmapAt(stamp, sub(right, sw), top);
+      cv.restore();
+      // ștampila: două cercuri și data, cu cerneală rară
+      const cx = sub(sub(right, sw), mul(m, 0.02)), cy = sub(add(top, sh), mul(m, 0.01));
+      const rad = mul(m, 0.075);
+      stroke.color = withAlpha(inkColor, 0x80); stroke.width = mul(1.3, dp);
+      cv.drawCircle(cx, cy, rad, stroke);
+      stroke.width = mul(0.8, dp);
+      cv.drawCircle(cx, cy, mul(rad, 0.78), stroke);
+      const tiny = { style: "F", align: "center", color: withAlpha(inkColor, 0x90), size: mul(rad, 0.34), letterSpacing: F(0.12) };
+      cv.drawText("SEVA", cx, sub(cy, mul(rad, 0.08)), tiny);
+      tiny.size = mul(rad, 0.26); tiny.letterSpacing = F(0.04);
+      cv.drawText(stampDate, cx, add(cy, mul(rad, 0.3)), tiny);
+      textTop = add(add(top, sh), mul(margin, 0.9));
+    }
+
+    // ștampila de secret, sus-stânga, ușor strâmbă, ca pusă de mână
+    if (secret) secretStamp(cv, add(inner.left, margin), add(add(inner.top, margin), mul(m, 0.02)), mul(m, 0.40), mul(m, 0.105), pal, secret);
+
+    // gândul: ca scrisul pe o carte poștală, aliniat la stânga, aerisit; se micșorează până încape
+    const tp = { style: "F", italic: true, align: "left", color: withAlpha(inkColor, 0xE6), size: mul(m, 0.052) };
+    const width = Math.max(trunc(sub(rw(inner), mul(2, margin))), 10);
+    const maxH = sub(sub(sub(inner.bottom, mul(margin, 1.5)), mul(m, 0.06)), textTop);
+    // înălțimea unui rând, ca la seriful din Android (urcuș 1,07 + coborâș 0,29), cu rândurile rărite de 1,28 ori
+    const pitch = () => tp.size * 1.362 * 1.28;
+    let lines;
+    for (;;) {
+      lines = note ? wrapNote(cv, note, tp, width) : [];
+      if (lines.length * pitch() <= maxH || tp.size <= mul(m, 0.024)) break;
+      tp.size = mul(tp.size, 0.92);
+    }
+    cv.save();
+    cv.translate(add(inner.left, margin), textTop);
+    lines.forEach((ln, i) => cv.drawNoteLine(ln, 0, tp.size * 1.069 + i * pitch(), tp));
+    cv.restore();
+
+    // semnatarul și data, ca semnătura de pe față
+    text.size = mul(m, 0.026);
+    text.color = withAlpha(inkColor, 0xD0);
+    cv.drawText(signed, sub(inner.right, mul(m, 0.05)), sub(inner.bottom, mul(m, 0.05)), text);
+    cv.restore();
+    frameOver(cv, inner, dp, pal, pl.doubleLine);
+  }
+
+  /** Data de pe ștampila timbrului: 12.11.2026 */
+  function stampDate(at) { const d = new Date(at); return `${d.getDate()}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}`; }
+
   // ------------------------------------------------------------------ codul unui dar (Codec.kt)
 
   const CODE_VERSION = 6, GEN = 3;
@@ -1590,5 +1720,6 @@
   return { Random, colorToHSV, HSVToColor, blend, withAlpha, hex, Palette, pickPalette, plan, innerRect, fit, layout, paramsFromCase, planInfo,
     render, ink, Path, Recorder, Canvas2D, NullCanvas,
     renderEnvelope, decode, signature, paramsFromPiece, CODE_VERSION, GEN,
+    renderBack, stampFor, stampDate,
     ARMONIE, NEON, PASTEL, TUS, BRUT, REGISTERS, _internals: { f, F, hsv, luminance, contrast, mix, generate, wobble } };
 });
