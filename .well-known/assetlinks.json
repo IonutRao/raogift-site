@@ -1,0 +1,13 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "ro.ovidiu.seva",
+      "sha256_cert_fingerprints": [
+        "B4:0E:14:85:AF:D7:54:9C:9B:56:68:17:C4:91:AD:F5:7B:C8:62:2F:48:87:62:C8:26:71:72:0D:AE:C7:9C:FD",
+        "66:B9:7A:54:5B:B3:20:43:8B:80:AE:5B:3E:08:F7:3E:37:AA:0F:48:2D:9E:7C:41:8B:3D:FA:53:86:35:A4:0E"
+      ]
+    }
+  }
+]
