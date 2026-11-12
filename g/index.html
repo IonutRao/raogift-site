@@ -2,73 +2,194 @@
 <html lang="ro">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#141318">
 <title>Un tablou pentru tine</title>
 <style>
-  body { background:#141318; color:#C9CDD8; font-family: system-ui, sans-serif; max-width: 560px; margin: 0 auto; padding: 40px 20px; line-height: 1.6; text-align:center; }
-  h1 { color:#F2EFE6; font-weight: 500; font-size: 24px; }
-  .btn { display:block; background:#F2EFE6; color:#141318; padding: 14px 22px; border-radius: 28px; text-decoration:none; font-weight:500; margin: 14px auto 0; max-width: 320px; }
-  .btn.soft { background:transparent; color:#F2EFE6; border:1px solid #4A4A55; }
-  .muted { color:#8A90A3; font-size: 14px; margin-top: 24px; }
-  .sig { font-style: italic; color:#F1C27D; }
-  .back { border:1px solid #3A3942; border-radius: 8px; padding: 18px 20px; margin: 22px 0 6px; background:#1A1920; }
-  .back .label { color:#8A90A3; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; margin: 0 0 8px; }
-  .back .note { font-family: Georgia, "Times New Roman", serif; font-style: italic; font-size: 19px; color:#F2EFE6; margin: 0 0 10px; white-space: pre-wrap; }
-  .back .sig { font-size: 14px; margin: 0; }
+  :root { --bg:#141318; --cream:#F2E6CF; --pale:#C9CDD8; --line:#4A4850; --muted:#8A90A3; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; background:var(--bg); }
+  body { color:var(--pale); font-family: Georgia, "Times New Roman", serif; line-height:1.55; text-align:center;
+         padding: max(18px, env(safe-area-inset-top)) 16px max(28px, env(safe-area-inset-bottom)); -webkit-text-size-adjust:100%; }
+  main { max-width: 440px; margin: 0 auto; }
+  .brand { color:var(--cream); font-size:18px; letter-spacing:.32em; text-indent:.32em; margin: 4px 0 18px; opacity:.85; }
+  h1 { color:var(--cream); font-weight:400; font-size:22px; margin: 28px 0 10px; }
+  p { margin: 10px 0; }
+  #stage { position:relative; margin: 0 auto; }
+  #env { display:block; width:100%; padding:0; border:0; background:none; cursor:pointer; border-radius:10px; overflow:hidden;
+         box-shadow: 0 10px 34px rgba(0,0,0,.5); -webkit-tap-highlight-color: transparent;
+         transition: transform .5s cubic-bezier(.3,.7,.2,1), opacity .45s ease; }
+  #env canvas { display:block; width:100%; height:auto; }
+  #env:focus-visible { outline: 2px solid var(--cream); outline-offset: 4px; }
+  #env.sway { animation: sway 3.6s ease-in-out infinite; }
+  #env.gone { transform: translateY(-26px) scale(.94) rotate(-2deg); opacity:0; pointer-events:none; }
+  @keyframes sway { 0%,100% { transform: rotate(-.6deg); } 50% { transform: rotate(.6deg) translateY(-3px); } }
+  #hint { color:var(--cream); font-style:italic; font-size:16px; margin-top:16px; animation: breathe 2.4s ease-in-out infinite; }
+  @keyframes breathe { 0%,100% { opacity:.45; } 50% { opacity:1; } }
+  #pic { display:none; margin: 0 auto; opacity:0; transform: translateY(22px) scale(.965);
+         transition: transform .8s cubic-bezier(.2,.75,.2,1), opacity .7s ease; }
+  #pic.shown { opacity:1; transform:none; }
+  #pic canvas { display:block; width:100%; height:auto; border-radius:3px; box-shadow: 0 14px 44px rgba(0,0,0,.6); }
+  #from { color:var(--cream); font-style:italic; font-size:15px; margin: 14px 0 0; }
+  #back { color:var(--pale); font-style:italic; font-size:15px; margin: 6px 0 0; }
+  #say { color:var(--pale); font-size:16px; margin: 18px 0 0; }
+  .btn { display:block; max-width:320px; margin: 22px auto 0; padding: 13px 24px; border-radius:26px; text-decoration:none;
+         font-size:17px; letter-spacing:.03em; background:var(--cream); color:var(--bg); }
+  .btn.soft { background:transparent; color:var(--pale); border:1.2px solid var(--line); }
+  .btn:active { filter: brightness(.9); }
+  .muted { color:var(--muted); font-size:13.5px; margin-top:16px; }
+  #foot { margin-top:30px; }
+  [hidden] { display:none !important; }
+  @media (prefers-reduced-motion: reduce) { #env, #pic { transition:none; } #env.sway, #hint { animation:none; } }
 </style>
 </head>
 <body>
-<h1>Un tablou pentru tine</h1>
-<p id="who" class="sig"></p>
-<p>Cineva ți-a dăruit un tablou făcut din gestul mâinii lui. Ca să îl adaugi în colecția ta, deschide-l în aplicația Seva.</p>
-<div id="back" class="back" style="display:none"><p class="label">Pe spate</p><p id="note" class="note"></p><p id="noteby" class="sig"></p></div>
-<a id="open" class="btn" href="#">Deschide în aplicație</a>
-<a id="play" class="btn soft" href="https://play.google.com/store/apps/details?id=ro.ovidiu.seva">Nu am aplicația: instalează din Google Play</a>
-<p class="muted">Ai deja Seva și linkul te-a adus aici, sau tabloul nu se deschide? Actualizează aplicația din Google Play, apoi deschide din nou linkul.</p>
-<p class="muted">Tabloul renaște identic pe telefonul tău, din parametrii lui. Aplicația nu cere permisiuni și nu are nevoie de internet.</p>
+<main>
+  <p class="brand">SEVA</p>
+  <div id="stage" hidden>
+    <button id="env" type="button"><canvas id="envc" width="1200" height="630"></canvas></button>
+    <div id="pic"><canvas id="art"></canvas></div>
+  </div>
+  <p id="hint" hidden></p>
+  <p id="from" hidden></p>
+  <p id="back" hidden></p>
+  <h1 id="head" hidden></h1>
+  <p id="say" hidden></p>
+  <a id="open" class="btn" href="#" hidden></a>
+  <a id="play" class="btn soft" href="https://play.google.com/store/apps/details?id=ro.ovidiu.seva" hidden></a>
+  <p id="info" class="muted" hidden></p>
+  <p id="update" class="muted" hidden></p>
+  <p id="foot" class="muted" hidden></p>
+</main>
+<script src="seva.js?v=2"></script>
 <script>
 (function () {
-  var code = location.hash ? location.hash.substring(1) : "";
-  var play = "https://play.google.com/store/apps/details?id=ro.ovidiu.seva";
-  if (!code) { document.getElementById("open").style.display = "none"; return; }
-  var intent = "intent://g/" + code + "#Intent;scheme=seva;package=ro.ovidiu.seva;S.browser_fallback_url=" + encodeURIComponent(play) + ";end";
-  document.getElementById("open").href = intent;
-  try {
-    var b64 = code.replace(/-/g, "+").replace(/_/g, "/");
-    while (b64.length % 4) b64 += "=";
-    var bin = atob(b64); var bytes = new Uint8Array(bin.length);
-    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    var dv = new DataView(bytes.buffer);
-    var version = bytes[0];
-    var o = 1 + 8;
-    var ms = Number(dv.getBigInt64(o)); o += 8 + (version >= 2 ? 4 : 2) + (version >= 3 ? 16 : 0);
-    var alen = bytes[o]; o += 1;
-    var author = new TextDecoder("utf-8").decode(bytes.slice(o, o + alen)); o += alen;
-    var who = "";
-    if (version >= 3) { var wlen = bytes[o]; o += 1; who = new TextDecoder("utf-8").decode(bytes.slice(o, o + wlen)); o += wlen; }
-    if (version >= 4) {
-      var noteAt = Number(dv.getBigInt64(o)); o += 8;
-      var nlen = dv.getUint16(o); o += 2;
-      var note = new TextDecoder("utf-8").decode(bytes.slice(o, o + nlen)); o += nlen;
-      var blen = bytes[o]; o += 1;
-      var by = new TextDecoder("utf-8").decode(bytes.slice(o, o + blen)); o += blen;
-      var flags = 0;
-      if (version >= 5) { o += 1; }                 // generația compozitorului
-      if (version >= 6) { flags = bytes[o]; o += 1; }
-      var burned = (flags & 2) !== 0, secret = (flags & 1) !== 0;
-      // darul pleacă în plic: pagina nu arată nici tabloul, nici gândul, doar că există
-      if (note.trim() || burned) {
-        document.getElementById("note").textContent = burned
-          ? "Pe spate a fost un gând top secret."
-          : (secret ? "Pe spate e un gând top secret. Îl citești în Seva." : "Pe spate e scris un gând. Îl citești în Seva.");
-        document.getElementById("noteby").textContent = by ? "de la " + by : "";
-        document.getElementById("back").style.display = "block";
-      }
+  "use strict";
+  var lang = /^ro\b/i.test(navigator.language || "ro") ? "ro" : "en";
+  var T = {
+    ro: {
+      title: "Un tablou pentru tine", envFrom: "de la %s", envOpen: "atinge ca să-l deschizi", secret: "TOP SECRET",
+      hint: "Atinge plicul ca să-l deschizi", envLabel: "Deschide plicul", from: "de la %s",
+      back: "Pe spate e scris un gând.", backSecret: "Pe spate e un gând top secret.", backBurned: "Pe spate a fost un gând top secret.", inSeva: " Îl citești în Seva.",
+      open: "Deschide în Seva", play: "Seva în Google Play",
+      android: "În Seva, tabloul intră în colecția ta. Dacă nu ai aplicația, butonul te duce în Google Play.",
+      update: "Ai deja Seva și tabloul nu se deschide în ea? Actualizeaz-o din Google Play, apoi deschide din nou linkul.",
+      ios: "Seva este deocamdată doar pentru Android.", iosStay: " Tabloul tău rămâne aici, la acest link.",
+      other: "Pe un telefon cu Android, tabloul poate intra în colecția ta din Seva.",
+      foot: "Tabloul renaște din parametrii lui, chiar aici, în browserul tău. Nimic nu este trimis nicăieri.",
+      newer: "Tabloul acesta e făcut cu o Seva mai nouă decât pagina, care încă nu știe să-l deseneze.", newerApp: " Se deschide în aplicație.",
+      invalidHead: "Linkul nu este întreg", invalid: "Cere-i celui care ți l-a trimis să îl trimită din nou.",
+      noneHead: "Aici se deschid tablourile dăruite", none: "Seva face tablouri din gestul mâinii tale. Pe unele le păstrezi, pe altele le dăruiești.",
+      failed: "Tabloul nu a putut fi desenat în acest browser."
+    },
+    en: {
+      title: "A piece for you", envFrom: "from %s", envOpen: "tap to open", secret: "TOP SECRET",
+      hint: "Tap the envelope to open it", envLabel: "Open the envelope", from: "from %s",
+      back: "There is a thought written on the back.", backSecret: "There is a top secret thought on the back.", backBurned: "There was a top secret thought on the back.", inSeva: " You can read it in Seva.",
+      open: "Open in Seva", play: "Seva on Google Play",
+      android: "In Seva, the piece joins your collection. If you do not have the app, the button takes you to Google Play.",
+      update: "You already have Seva and the piece does not open in it? Update it from Google Play, then open the link again.",
+      ios: "Seva is only on Android for now.", iosStay: " Your piece stays here, at this link.",
+      other: "On an Android phone, the piece can join your collection in Seva.",
+      foot: "The piece is reborn from its parameters, right here in your browser. Nothing is sent anywhere.",
+      newer: "This piece was made with a newer Seva than this page, which cannot draw it yet.", newerApp: " It opens in the app.",
+      invalidHead: "The link is not complete", invalid: "Ask the person who sent it to send it again.",
+      noneHead: "Gifted pieces open here", none: "Seva makes pictures from the gesture of your hand. Some you keep, some you give away.",
+      failed: "The piece could not be drawn in this browser."
     }
-    var date = new Date(ms).toLocaleString("ro-RO", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
-    document.getElementById("who").textContent = (author ? author + " · " : "") + date + (who && who !== author ? " · trimis de " + who : "");
-  } catch (e) {}
-  if (/Android/i.test(navigator.userAgent)) { setTimeout(function () { location.href = intent; }, 600); }
+  }[lang];
+  document.documentElement.lang = lang;
+  document.title = T.title;
+
+  var $ = function (id) { return document.getElementById(id); };
+  var show = function (id, text) { var e = $(id); if (text !== undefined) e.textContent = text; e.hidden = false; return e; };
+  var ua = navigator.userAgent || "";
+  var android = /Android/i.test(ua);
+  var ios = /iPhone|iPad|iPod/i.test(ua) || (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1);
+  var playUrl = "https://play.google.com/store/apps/details?id=ro.ovidiu.seva";
+  var code = location.hash ? location.hash.substring(1) : "";
+
+  // butoanele și rândurile de jos, după telefon
+  function actions(withCode, stays) {
+    if (android) {
+      if (withCode) {
+        show("open", T.open).href = "intent://g/" + code + "#Intent;scheme=seva;package=ro.ovidiu.seva;S.browser_fallback_url=" + encodeURIComponent(playUrl) + ";end";
+        show("info", T.android); show("update", T.update);
+      } else show("play", T.play);
+    } else if (ios) show("info", T.ios + (stays ? T.iosStay : ""));
+    else { show("play", T.play); show("info", T.other); }
+  }
+  function words(head, say) { show("head", head); show("say", say); }
+
+  if (!code) { words(T.noneHead, T.none); actions(false); return; }
+  var piece = window.Seva ? Seva.decode(code) : null;
+  if (!window.Seva || !piece) {
+    if (!window.Seva) words(T.title, T.failed); else words(T.invalidHead, T.invalid);
+    actions(!window.Seva);   // fără compozitor, butonul spre aplicație încă are rost; cu un cod stricat, nu
+    return;
+  }
+
+  var mk = function (w, h) { var c = document.createElement("canvas"); c.width = w; c.height = h; return c; };
+  var stage = $("stage"), env = $("env"), envc = $("envc"), pic = $("pic"), art = $("art");
+
+  // un plic fără culorile tabloului, când tabloul e dintr-o Seva mai nouă
+  if (piece.newer) {
+    words(T.title, T.newer + (android ? T.newerApp : "")); actions(true); return;
+  }
+
+  var params;
+  try {
+    params = Seva.paramsFromPiece(piece, lang);
+    var from = piece.from ? T.envFrom.replace("%s", piece.from) : T.envOpen;
+    Seva.renderEnvelope(new Seva.Canvas2D(envc.getContext("2d"), 1200, 630, mk), 1200, 630, params, T.title, from, piece.secret && piece.note ? T.secret : null);
+  } catch (e) { words(T.title, T.failed); actions(true); return; }
+
+  stage.hidden = false;
+  env.setAttribute("aria-label", T.envLabel);
+  env.classList.add("sway");
+  show("hint", T.hint);
+  actions(true, true);
+  show("foot", T.foot);
+
+  // tabloul: cât încape pe ecran, în raportul unei cărți poștale ținute în picioare
+  var drawn = false, failed = false;
+  function drawArt() {
+    if (drawn || failed) return;
+    try {
+      var wide = stage.clientWidth || 320;
+      var cssW = Math.max(220, Math.min(wide, (window.innerHeight - 150) * 0.6));
+      var dpr = Math.min(window.devicePixelRatio || 1, 3);
+      var w = Math.round(cssW * dpr), h = Math.round(w / 0.6);
+      art.width = w; art.height = h;
+      pic.style.width = cssW + "px";
+      // grosimile se raportează la lățimea telefonului, ca în aplicație
+      var dp = dpr * cssW / Math.min(window.innerWidth || cssW, 440);
+      Seva.render(new Seva.Canvas2D(art.getContext("2d"), w, h, mk), w, h, dp, params);
+      drawn = true;
+    } catch (e) { failed = true; }
+  }
+  setTimeout(drawArt, 120);
+
+  var opened = false;
+  env.addEventListener("click", function () {
+    if (opened) return;
+    opened = true;
+    drawArt();
+    $("hint").hidden = true;
+    if (failed) { words(T.title, T.failed); return; }
+    env.classList.remove("sway");
+    env.classList.add("gone");
+    setTimeout(function () {
+      env.style.display = "none";
+      pic.style.display = "block";
+      void pic.offsetWidth;
+      pic.classList.add("shown");
+      if (piece.from && piece.from !== piece.author) show("from", T.from.replace("%s", piece.from));
+      if (piece.note || piece.burned) {
+        show("back", (piece.burned ? T.backBurned : piece.secret ? T.backSecret : T.back) + (android && !piece.burned ? T.inSeva : ""));
+      }
+    }, window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 430);
+  });
 })();
 </script>
 </body>

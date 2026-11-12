@@ -498,6 +498,7 @@
     drawColor() {} drawRect() {} drawCircle() {} drawPath() {} drawOval() {} drawLine() {} drawRoundRect() {} drawText() {}
     save() {} restore() {} translate() {} scale() {} rotate() {} clipRect() {} saveLayerAlpha() {} saveLayerShadow() {}
     offscreen() { return new NullCanvas(); } drawBitmap() {}
+    measureText(str, p) { return f(str.length * p.size * (0.5 + (p.letterSpacing || 0))); }
   }
 
   const n2 = (v) => f(v).toFixed(2);
@@ -521,6 +522,7 @@
     saveLayerAlpha(l, t, r, b, a) { this.lines.push("layer " + a); this.inner.saveLayerAlpha(l, t, r, b, a); }
     saveLayerShadow(l, t, r, b, k) { this.lines.push("layer filter"); this.inner.saveLayerShadow(l, t, r, b, k); }
     offscreen(w, h) { return this.inner.offscreen(w, h); }
+    measureText(str, p) { return this.inner.measureText(str, p); }
     drawBitmap(bmp, l, t, r, b, a) { this.lines.push(`bitmap ${bmp.w} ${bmp.h} ${a}`); this.inner.drawBitmap(bmp, l, t, r, b, a); }
   }
 
@@ -569,13 +571,21 @@
       }
       this._paint(p);
     }
+    _font(p) { this.ctx.font = `${p.italic ? "italic " : ""}${p.bold ? "bold " : ""}${p.size}px Georgia, "Times New Roman", Times, serif`; }
+    /** Lățimea unui text, cu tot cu spațiul dintre litere (ca Paint.measureText). */
+    measureText(str, p) { this._font(p); return f(this.ctx.measureText(str).width + (p.letterSpacing || 0) * p.size * str.length); }
     drawText(s, x, y, p) {
       const c = this.ctx;
-      c.font = `${p.italic ? "italic " : ""}${p.bold ? "bold " : ""}${p.size}px Georgia, "Times New Roman", Times, serif`;
-      c.textAlign = p.align || "left"; c.textBaseline = "alphabetic"; c.fillStyle = css(p.color);
-      if (p.letterSpacing && "letterSpacing" in c) c.letterSpacing = p.letterSpacing * p.size + "px";
-      c.fillText(s, x, y);
-      if ("letterSpacing" in c) c.letterSpacing = "0px";
+      this._font(p);
+      c.textBaseline = "alphabetic"; c.fillStyle = css(p.color);
+      const ls = (p.letterSpacing || 0) * p.size;
+      if (!ls) { c.textAlign = p.align || "left"; c.fillText(s, x, y); return; }
+      // litere rare: fiecare literă la locul ei, ca să iasă la fel în orice browser
+      const total = this.measureText(s, p);
+      let at = p.align === "center" ? x - total / 2 : p.align === "right" ? x - total : x;
+      c.textAlign = "left";
+      at += ls / 2;
+      for (const ch of s) { c.fillText(ch, at, y); at += c.measureText(ch).width + ls; }
     }
     save() { this.ctx.save(); this.stack.push({ m: this.m.slice() }); }
     restore() {
@@ -1430,7 +1440,155 @@
     frameOver(cv, inner, dp, pal, pl.doubleLine);
   }
 
+
+  // ------------------------------------------------------------------ plicul (Composer.renderEnvelope)
+
+  /** Ștampila „TOP SECRET”: chenar dublu și litere rare, în roșu de tuș, potrivit cu hârtia. */
+  function secretStamp(cv, x, y, sw, sh, pal, label) {
+    const ruby = pal.dark ? rgb(0xE8, 0x6A, 0x58) : rgb(0xB5, 0x30, 0x25);
+    cv.save();
+    rotateAt(cv, -7, add(x, div(sw, 2)), add(y, div(sh, 2)));
+    stroke.color = withAlpha(ruby, 0xD8); stroke.width = mul(sh, 0.07);
+    cv.drawRoundRect(x, y, add(x, sw), add(y, sh), mul(sh, 0.12), stroke);
+    stroke.width = mul(sh, 0.025);
+    const d = mul(sh, 0.12);
+    cv.drawRoundRect(add(x, d), add(y, d), sub(add(x, sw), d), sub(add(y, sh), d), mul(sh, 0.06), stroke);
+    const t = { style: "F", bold: true, align: "center", color: withAlpha(ruby, 0xE0), size: mul(sh, 0.46), letterSpacing: F(0.14) };
+    while (cv.measureText(label, t) > sub(sw, mul(sh, 0.5)) && t.size > mul(sh, 0.2)) t.size = mul(t.size, 0.94);
+    cv.drawText(label, add(x, div(sw, 2)), add(add(y, div(sh, 2)), mul(t.size, 0.36)), t);
+    cv.restore();
+  }
+
+  /**
+   * Plicul în care pleacă un dar: închis, pe lat, în culorile tabloului dinăuntru (hârtia și rama lui),
+   * cu un sigiliu și două rânduri de text. Dă de bănuit, fără să arate nimic.
+   */
+  function renderEnvelope(cv, w, h, p, title, from, secret) {
+    const pl = plan(w, h, p), pal = pl.pal;
+    const u = div(h, 100);                                   // unitatea: un procent din înălțime
+    cv.drawColor(blend(pl.frameColor, BLACK, 0.35));
+    // corpul plicului
+    const body = { left: mul(7, u), top: mul(9, u), right: sub(w, mul(7, u)), bottom: sub(h, mul(9, u)) };
+    const paper = pal.dark ? blend(pal.background, WHITE, 0.10) : pal.background;
+    fill.color = 0x50 << 24;
+    cv.drawRoundRect(add(body.left, u), add(body.top, mul(1.6, u)), add(body.right, u), add(body.bottom, mul(1.6, u)), mul(2.4, u), fill);
+    fill.color = paper;
+    cv.drawRoundRect(body.left, body.top, body.right, body.bottom, mul(2.4, u), fill);
+    const inkColor = ink(pal);
+    const bcx = rcx(body);
+    const tipY = add(body.top, mul(rh(body), 0.5));
+    // clapa: un triunghi puțin mai închis sau mai deschis decât hârtia, cu marginea trasă fin
+    const flap = new Path();
+    flap.moveTo(add(body.left, mul(1.2, u)), add(body.top, mul(1.2, u)));
+    flap.lineTo(sub(body.right, mul(1.2, u)), add(body.top, mul(1.2, u)));
+    flap.lineTo(bcx, tipY);
+    flap.close();
+    fill.color = pal.dark ? blend(paper, WHITE, 0.07) : blend(paper, BLACK, 0.06);
+    cv.drawPath(flap, fill);
+    stroke.color = withAlpha(inkColor, 0x48); stroke.width = mul(0.4, u);
+    cv.drawPath(flap, stroke);
+    // un filet în culoarea vârfului, de jur împrejur, ca la rama tabloului
+    stroke.color = withAlpha(pal.tip, 0x70); stroke.width = mul(0.3, u);
+    const e = mul(2.6, u);
+    cv.drawRoundRect(add(body.left, e), add(body.top, e), sub(body.right, e), sub(body.bottom, e), mul(1.4, u), stroke);
+    // sigiliul: ceară în culoarea tulpinii, cu inel și inițiala
+    const sr = mul(8.2, u);
+    fill.color = 0x40 << 24;
+    cv.drawCircle(add(bcx, mul(0.5, u)), add(tipY, mul(0.9, u)), sr, fill);
+    fill.color = pal.stem;
+    cv.drawCircle(bcx, tipY, sr, fill);
+    stroke.color = withAlpha(blend(pal.stem, WHITE, 0.35), 0xC0); stroke.width = mul(0.45, u);
+    cv.drawCircle(bcx, tipY, mul(sr, 0.78), stroke);
+    const bright = add(mul(0.299, red(pal.stem)), mul(0.587, green(pal.stem)), mul(0.114, blue(pal.stem))) > 140;
+    const seal = { style: "F", italic: true, align: "center", size: mul(sr, 1.15), color: bright ? blend(pal.stem, BLACK, 0.7) : blend(pal.stem, WHITE, 0.85) };
+    cv.drawText("S", bcx, add(tipY, mul(sr, 0.4)), seal);
+    // cele două rânduri, sub sigiliu
+    const line = { style: "F", italic: true, align: "center", color: withAlpha(inkColor, 0xE6), size: mul(7.4, u) };
+    const maxW = sub(rw(body), mul(14, u));
+    while (cv.measureText(title, line) > maxW && line.size > mul(3, u)) line.size = mul(line.size, 0.94);
+    cv.drawText(title, bcx, add(add(tipY, sr), mul(11.5, u)), line);
+    line.size = mul(5.2, u); line.color = withAlpha(inkColor, 0xB0);
+    while (cv.measureText(from, line) > maxW && line.size > mul(2.5, u)) line.size = mul(line.size, 0.94);
+    cv.drawText(from, bcx, add(add(tipY, sr), mul(19.5, u)), line);
+    // un dar cu gând secret își poartă ștampila pe plic
+    if (secret) secretStamp(cv, add(body.left, mul(7, u)), add(body.top, mul(8, u)), mul(34, u), mul(9.5, u), pal, secret);
+  }
+
+  // ------------------------------------------------------------------ codul unui dar (Codec.kt)
+
+  const CODE_VERSION = 6, GEN = 3;
+
+  /**
+   * Din codul de după # al unui link: tabloul, cu tot ce poartă. Întoarce null dacă nu e un cod de Seva.
+   * newer = vine de la o Seva mai nouă decât pagina; atunci nu ghicim tabloul.
+   */
+  function decode(code) {
+    try {
+      let b64 = String(code).replace(/-/g, "+").replace(/_/g, "/");
+      while (b64.length % 4) b64 += "=";
+      const bin = atob(b64);
+      const u = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+      let o = 0;
+      const u8 = () => { if (o >= u.length) throw new Error("scurt"); return u[o++]; };
+      const u16 = () => { const hi = u8(); return (hi << 8) | u8(); };
+      const i64 = () => { let v = 0n; for (let i = 0; i < 8; i++) v = (v << 8n) | BigInt(u8()); return BigInt.asIntN(64, v); };
+      const str = (n) => { if (o + n > u.length) throw new Error("scurt"); const t = new TextDecoder("utf-8").decode(u.subarray(o, o + n)); o += n; return t; };
+      const blank = (t) => t.trim().length === 0;
+
+      const version = u8();
+      if (version < 1 || version > 127) return null;
+      if (version > CODE_VERSION) return { newer: true, version };
+      const seed = i64();
+      const createdAt = Number(i64());
+      const nervous = u8(), slow = u8();
+      let light = 255, battery = 255;
+      if (version >= 2) { light = u8(); battery = u8(); }
+      if (version >= 3) { i64(); i64(); }                       // semnele instalărilor: pagina nu are ce face cu ele
+      const author = str(u8());
+      let from = author;
+      if (version >= 3) { const who = str(u8()); if (!blank(who)) from = who; }
+      let note = null, noteBy = null, noteAt = 0, by = "";
+      if (version >= 4) {
+        noteAt = Number(i64());
+        const t = str(u16());
+        by = str(u8());
+        if (!blank(t)) { note = t; noteBy = blank(by) ? null : by; }
+      }
+      const gen = version >= 5 ? u8() : 0;
+      const flags = version >= 6 ? u8() : 0;
+      const burned = (flags & 2) !== 0;
+      const secret = !burned && note !== null && (flags & 1) !== 0;
+      if (burned) { note = null; noteBy = blank(by) ? null : by; }
+      const n = u8();
+      const strokes = [];
+      for (let i = 0; i < n; i++) {
+        const m = u8(), pts = [];
+        for (let k = 0; k < m; k++) { const x = u16(); pts.push([x, u16()]); }
+        strokes.push(pts);
+      }
+      return { version, seed, createdAt, nervous, slow, light, battery, author, from: blank(from) ? null : from,
+        note, noteBy, noteAt, gen, secret, burned, strokes, newer: gen > GEN };
+    } catch (e) { return null; }
+  }
+
+  /** Semnătura de pe tablou, ca Renders.signature: „autor · 12 noiembrie 2026, 10:00”, pe ora telefonului. */
+  function signature(author, at, lang) {
+    const d = new Date(at), two = (x) => String(x).padStart(2, "0");
+    let month;
+    try { month = new Intl.DateTimeFormat(lang || "ro", { month: "long" }).format(d); } catch (e) { month = String(d.getMonth() + 1); }
+    const date = `${d.getDate()} ${month} ${d.getFullYear()}, ${two(d.getHours())}:${two(d.getMinutes())}`;
+    return author && author.trim().length ? `${author} · ${date}` : date;
+  }
+
+  /** Parametrii compozitorului pentru un dar decodat. */
+  function paramsFromPiece(piece, lang) {
+    return paramsFromCase({ strokes: piece.strokes, nervous: piece.nervous, slow: piece.slow, light: piece.light, battery: piece.battery,
+      seed: piece.seed, gen: piece.gen, signature: signature(piece.author, piece.createdAt, lang) });
+  }
+
   return { Random, colorToHSV, HSVToColor, blend, withAlpha, hex, Palette, pickPalette, plan, innerRect, fit, layout, paramsFromCase, planInfo,
     render, ink, Path, Recorder, Canvas2D, NullCanvas,
+    renderEnvelope, decode, signature, paramsFromPiece, CODE_VERSION, GEN,
     ARMONIE, NEON, PASTEL, TUS, BRUT, REGISTERS, _internals: { f, F, hsv, luminance, contrast, mix, generate, wobble } };
 });
