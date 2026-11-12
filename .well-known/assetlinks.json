@@ -1,12 +1,17 @@
 [
   {
-    "relation": ["delegate_permission/common.handle_all_urls"],
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
     "target": {
       "namespace": "android_app",
       "package_name": "ro.ovidiu.seva",
       "sha256_cert_fingerprints": [
         "B4:0E:14:85:AF:D7:54:9C:9B:56:68:17:C4:91:AD:F5:7B:C8:62:2F:48:87:62:C8:26:71:72:0D:AE:C7:9C:FD",
-        "66:B9:7A:54:5B:B3:20:43:8B:80:AE:5B:3E:08:F7:3E:37:AA:0F:48:2D:9E:7C:41:8B:3D:FA:53:86:35:A4:0E"
+        "66:B9:7A:54:5B:B3:20:43:8B:80:AE:5B:3E:08:F7:3E:37:AA:0F:48:2D:9E:7C:41:8B:3D:FA:53:86:35:A4:0E",
+        "BE:ED:50:4E:F8:D8:6F:D6:3A:C2:CC:EF:2F:98:AB:2C:04:5F:25:F8:6F:F4:23:FF:82:C3:39:9C:11:B7:73:30",
+        "B6:07:D9:A5:3C:D5:E6:A0:52:F6:4E:B6:5C:F3:7E:8A:22:F5:5F:55:6F:20:2E:C9:78:0E:7A:65:8F:A9:E3:4E",
+        "C9:5E:C8:1F:78:55:D7:DA:20:77:A0:6E:AE:0D:6A:25:83:E8:FB:D7:FE:61:11:BF:FB:69:2F:35:62:F0:3A:60"
       ]
     }
   }
