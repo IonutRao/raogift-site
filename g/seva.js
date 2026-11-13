@@ -1835,7 +1835,7 @@
 
   // ------------------------------------------------------------------ codul unui dar (Codec.kt)
 
-  const CODE_VERSION = 6, GEN = 4;
+  const CODE_VERSION = 7, GEN = 4;
   const TIER_NAMES = { ro: [null, "Piesă rară", "Piesă de colecție", "Seva de aur"], en: [null, "Rare piece", "Collector's piece", "Golden Seva"] };
 
   /**
@@ -1855,6 +1855,11 @@
       const i64 = () => { let v = 0n; for (let i = 0; i < 8; i++) v = (v << 8n) | BigInt(u8()); return BigInt.asIntN(64, v); };
       const str = (n) => { if (o + n > u.length) throw new Error("scurt"); const t = new TextDecoder("utf-8").decode(u.subarray(o, o + n)); o += n; return t; };
       const blank = (t) => t.trim().length === 0;
+      const unzig = () => {
+        let z = 0, shift = 0;
+        for (;;) { const b = u8(); z |= (b & 0x7F) << shift; if ((b & 0x80) === 0) break; shift += 7; if (shift > 28) throw new Error("lung"); }
+        return (z >>> 1) ^ -(z & 1);
+      };
 
       const version = u8();
       if (version < 1 || version > 127) return null;
@@ -1869,14 +1874,17 @@
       let from = author;
       if (version >= 3) { const who = str(u8()); if (!blank(who)) from = who; }
       let note = null, noteBy = null, noteAt = 0, by = "";
-      if (version >= 4) {
+      // de la versiunea 7, generația și semnele vin înaintea spatelui, iar spatele doar dacă există
+      let gen = 0, flags = 0;
+      if (version >= 7) { gen = u8(); flags = u8(); }
+      if ((version >= 4 && version <= 6) || (version >= 7 && (flags & 4) !== 0)) {
         noteAt = Number(i64());
         const t = str(u16());
         by = str(u8());
         if (!blank(t)) { note = t; noteBy = blank(by) ? null : by; }
       }
-      const gen = version >= 5 ? u8() : 0;
-      const flags = version >= 6 ? u8() : 0;
+      if (version === 5 || version === 6) gen = u8();
+      if (version === 6) flags = u8();
       const burned = (flags & 2) !== 0;
       const secret = !burned && note !== null && (flags & 1) !== 0;
       if (burned) { note = null; noteBy = blank(by) ? null : by; }
@@ -1884,7 +1892,20 @@
       const strokes = [];
       for (let i = 0; i < n; i++) {
         const m = u8(), pts = [];
-        for (let k = 0; k < m; k++) { const x = u16(); pts.push([x, u16()]); }
+        if (version >= 7) {
+          // primul punct întreg, al doilea ca diferență, restul ca diferență a diferențelor
+          let px = 0, py = 0, dx = 0, dy = 0;
+          for (let k = 0; k < m; k++) {
+            let x, y;
+            if (k === 0) { x = u16(); y = u16(); }
+            else if (k === 1) { x = px + unzig(); y = py + unzig(); }
+            else { x = px + dx + unzig(); y = py + dy + unzig(); }
+            if (x < 0 || x > 65535 || y < 0 || y > 65535) throw new Error("grila");
+            if (k >= 1) { dx = x - px; dy = y - py; }
+            px = x; py = y;
+            pts.push([x, y]);
+          }
+        } else for (let k = 0; k < m; k++) { const x = u16(); pts.push([x, u16()]); }
         strokes.push(pts);
       }
       return { version, seed, createdAt, nervous, slow, light, battery, author, from: blank(from) ? null : from,
