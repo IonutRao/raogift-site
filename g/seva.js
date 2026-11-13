@@ -1657,9 +1657,14 @@
    * cu un sigiliu și două rânduri de text. Dă de bănuit, fără să arate nimic.
    */
   function renderEnvelope(cv, w, h, p, title, from, secret) {
-    const pl = plan(w, h, p), pal = pl.pal;
+    const pl = plan(w, h, p);
+    renderEnvelopePal(cv, w, h, pl.pal, pl.frameColor, title, from, secret);
+  }
+
+  /** Același plic, dintr-o paletă dată direct: pentru plicurile din cartonașele de link, pe familii de culori. */
+  function renderEnvelopePal(cv, w, h, pal, frameColor, title, from, secret) {
     const u = div(h, 100);                                   // unitatea: un procent din înălțime
-    cv.drawColor(blend(pl.frameColor, BLACK, 0.35));
+    cv.drawColor(blend(frameColor, BLACK, 0.35));
     // corpul plicului
     const body = { left: mul(7, u), top: mul(9, u), right: sub(w, mul(7, u)), bottom: sub(h, mul(9, u)) };
     const paper = pal.dark ? blend(pal.background, WHITE, 0.10) : pal.background;
@@ -1932,7 +1937,7 @@
   return { Random, colorToHSV, HSVToColor, blend, withAlpha, hex, Palette, pickPalette, plan, innerRect, fit, layout, paramsFromCase, planInfo,
     render, ink, Path, Recorder, Canvas2D, NullCanvas,
     renderEnvelope, decode, signature, paramsFromPiece, CODE_VERSION, GEN,
-    renderBack, stampFor, stampDate,
+    renderBack, stampFor, stampDate, renderEnvelopePal,
     tierOf,
     ARMONIE, NEON, PASTEL, TUS, BRUT, REGISTERS, _internals: { f, F, hsv, luminance, contrast, mix, generate, wobble } };
 });
