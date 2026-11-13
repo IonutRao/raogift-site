@@ -378,12 +378,12 @@
   }
 
   /**
-   * Raritatea unui tablou: 0 obișnuit, 1 Piesă rară (17%), 2 Piesă de colecție (4,5%), 3 Seva de aur (0,5%).
+   * Raritatea unui tablou: 0 obișnuit, 1 Piesă rară (17%), 2 Piesă de colecție (4,5%), 3 Seva de aur (1%).
    * Ține doar de sămânță, deci călătorește cu tabloul și nu poate fi schimbată; se arată abia la Păstrează.
    */
   function tierOf(seed) {
     const x = new Random(BigInt.asIntN(64, BigInt(seed) ^ 0x52415245n)).nextFloat();
-    return x < F(0.005) ? 3 : x < F(0.05) ? 2 : x < F(0.22) ? 1 : 0;
+    return x < F(0.01) ? 3 : x < F(0.055) ? 2 : x < F(0.225) ? 1 : 0;
   }
 
   const matW = (w, h) => f(Math.min(w, h) * F(0.012));
