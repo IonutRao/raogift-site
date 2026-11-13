@@ -360,10 +360,13 @@
       backdrop = pr[0]; family = pr[1];
     }
     const texture = TEXTURES[r.nextIntUntil(TEXTURES.length)];
-    const frameW = f(Math.min(w, h) * f(F(0.022) + f(r.nextFloat() * F(0.016))));
+    // de la generația 4 rama e puțin mai lată, ca ramele tablourilor rare să aibă loc de lemn și de sculptură
+    const gen4 = p.gen >= 4;
+    const frameW = f(Math.min(w, h) * f(F(gen4 ? 0.030 : 0.022) + f(r.nextFloat() * F(gen4 ? 0.014 : 0.016))));
     const doubleLine = r.nextFloat() < F(0.5);
     const frameColor = blend(blend(pal.background, pal.stem, F(0.25)), BLACK, f(F(0.28) + f(r.nextFloat() * F(0.15))));
-    const pl = { r, pal, family, backdrop, texture, frameW, doubleLine, frameColor, volume: false, drawSeed: 0n, pearl: false, relief: false };
+    const pl = { r, pal, family, backdrop, texture, frameW, doubleLine, frameColor, volume: false, drawSeed: 0n, pearl: false, relief: false,
+      tier: gen4 && p.reveal !== false ? tierOf(p.seed) : 0 };
     if (p.gen >= 3) {
       pl.volume = true;
       pl.drawSeed = r.nextLong();
@@ -372,6 +375,15 @@
       pl.relief = rel && !pal.dark;
     }
     return pl;
+  }
+
+  /**
+   * Raritatea unui tablou: 0 obișnuit, 1 Piesă rară (17%), 2 Piesă de colecție (4,5%), 3 Seva de aur (0,5%).
+   * Ține doar de sămânță, deci călătorește cu tabloul și nu poate fi schimbată; se arată abia la Păstrează.
+   */
+  function tierOf(seed) {
+    const x = new Random(BigInt.asIntN(64, BigInt(seed) ^ 0x52415245n)).nextFloat();
+    return x < F(0.005) ? 3 : x < F(0.05) ? 2 : x < F(0.22) ? 1 : 0;
   }
 
   const matW = (w, h) => f(Math.min(w, h) * F(0.012));
@@ -721,7 +733,8 @@
     return lum > F(0.5) ? blend(pal.stem, BLACK, 0.35) : blend(pal.tip, WHITE, 0.5);
   }
 
-  function frameUnder(cv, w, h, dp, pl) {
+  function frameUnder(cv, w, h, dp, pl, seed) {
+    if (pl.tier > 0) { richFrame(cv, w, h, dp, pl, seed); return; }
     const fw = pl.frameW, pal = pl.pal;
     cv.drawColor(pl.frameColor);
     const edge = mul(fw, 0.3);
@@ -752,6 +765,180 @@
     // passe-partout-ul
     fill.color = pal.dark ? blend(pal.background, WHITE, 0.28) : blend(pal.background, WHITE, 0.55);
     cv.drawRect(fw, fw, sub(w, fw), sub(h, fw), fill);
+  }
+
+
+  // ------------------------------------------------------------------ ramele tablourilor rare
+
+  /**
+   * Rama unui tablou rar: aceeași lățime ca rama obișnuită (tabloul dinăuntru nu se mișcă), dar din lemn.
+   * 1 Piesă rară: lemn în culorile tabloului, cu fibră. 2 Piesă de colecție: nuc închis, sculptat cu un șir de perle.
+   * 3 Seva de aur: lemn aurit, cu perle și rozete în colțuri. Lumina vine din stânga-sus, ca la rama obișnuită.
+   * Fibra lemnului are generatorul ei, ca desenul dinăuntru să nu depindă de ramă.
+   */
+  function richFrame(cv, w, h, dp, pl, seed) {
+    const fw = pl.frameW, pal = pl.pal, tier = pl.tier;
+    const fr = new Random(BigInt.asIntN(64, BigInt(seed) * 41n + 11n));
+    let base;
+    if (tier === 3) base = rgb(0xC8, 0xA0, 0x48);
+    else if (tier === 2) base = blend(rgb(0x58, 0x36, 0x20), pal.stem, 0.14);
+    else base = blend(blend(pal.stem, rgb(0x8E, 0x66, 0x3C), 0.6), BLACK, 0.10);
+    const light = tier === 3 ? rgb(0xF6, 0xE4, 0xA4) : blend(base, WHITE, 0.30);
+    const dark = tier === 3 ? rgb(0x94, 0x6C, 0x24) : blend(base, BLACK, 0.34);
+    const deep = tier === 3 ? rgb(0x58, 0x3E, 0x10) : blend(base, BLACK, 0.62);
+
+    const quad = (col, x1, y1, x2, y2, x3, y3, x4, y4) => {
+      const q = new Path();
+      q.moveTo(x1, y1); q.lineTo(x2, y2); q.lineTo(x3, y3); q.lineTo(x4, y4); q.close();
+      fill.color = col;
+      cv.drawPath(q, fill);
+    };
+    // un inel al ramei, între două adâncimi, cu cele patru laturi tăiate la 45 de grade
+    const ring = (a, b, top, left, bottom, right) => {
+      quad(top, a, a, sub(w, a), a, sub(w, b), b, b, b);
+      quad(left, a, a, b, b, b, sub(h, b), a, sub(h, a));
+      quad(bottom, a, sub(h, a), b, sub(h, b), sub(w, b), sub(h, b), sub(w, a), sub(h, a));
+      quad(right, sub(w, a), a, sub(w, a), sub(h, a), sub(w, b), sub(h, b), sub(w, b), b);
+    };
+    const d1 = mul(fw, 0.14), d2 = mul(fw, 0.70), d3 = mul(fw, 0.88);
+    cv.drawColor(base);
+    // muchia din afară: prinde lumina sus și în stânga
+    ring(0, d1, light, blend(base, light, 0.6), dark, blend(base, dark, 0.8));
+    // fața ramei
+    ring(d1, d2, blend(base, WHITE, 0.10), blend(base, WHITE, 0.04), blend(base, BLACK, 0.12), blend(base, BLACK, 0.16));
+
+    // fibra lemnului: linii fine de-a lungul fiecărei laturi, unele mai închise, altele mai deschise
+    const grain = (len, lineAt) => {
+      const n = trunc(div(mul(len, tier === 3 ? 4 : 7), fw));
+      for (let i = 0; i < n; i++) {
+        const t = add(d1, mul(fr.nextFloat(), sub(d2, d1)));
+        const u0 = fr.nextFloat();
+        const u1 = Math.min(1, add(u0, add(0.12, mul(fr.nextFloat(), 0.5))));
+        const darkLine = fr.nextFloat() < F(0.6);
+        const a = (tier === 3 ? 0x10 : 0x1C) + fr.nextIntUntil(tier === 3 ? 0x1C : 0x30);
+        stroke.color = withAlpha(darkLine ? deep : light, a);
+        stroke.width = Math.max(F(0.6), mul(dp, add(0.4, mul(fr.nextFloat(), 0.8))));
+        lineAt(t, u0, u1);
+      }
+    };
+    // pe latura de sus și de jos linia merge pe x, între tăieturile colțurilor de la adâncimea ei
+    const along = (t, len, u) => add(t, mul(sub(len, mul(2, t)), u));
+    grain(w, (t, u0, u1) => cv.drawLine(along(t, w, u0), t, along(t, w, u1), t, stroke));
+    grain(w, (t, u0, u1) => cv.drawLine(along(t, w, u0), sub(h, t), along(t, w, u1), sub(h, t), stroke));
+    grain(h, (t, u0, u1) => cv.drawLine(t, along(t, h, u0), t, along(t, h, u1), stroke));
+    grain(h, (t, u0, u1) => cv.drawLine(sub(w, t), along(t, h, u0), sub(w, t), along(t, h, u1), stroke));
+
+    // șanțul sculptat spre tablou: coboară, deci sus și în stânga e în umbră, jos și în dreapta prinde lumina
+    ring(d2, d3, dark, blend(base, dark, 0.8), blend(base, light, 0.55), blend(base, light, 0.35));
+    // buza dinspre tablou
+    ring(d3, fw, deep, blend(dark, deep, 0.6), blend(base, BLACK, 0.2), blend(base, BLACK, 0.3));
+
+    // tăieturile din colțuri
+    stroke.color = withAlpha(deep, 0x78);
+    stroke.width = Math.max(1, mul(dp, 0.8));
+    cv.drawLine(0, 0, fw, fw, stroke);
+    cv.drawLine(w, 0, sub(w, fw), fw, stroke);
+    cv.drawLine(0, h, fw, sub(h, fw), stroke);
+    cv.drawLine(w, h, sub(w, fw), sub(h, fw), stroke);
+
+    // filetul dintre muchie și față
+    stroke.color = tier === 3 ? withAlpha(light, 0xD0) : withAlpha(pal.tip, 0x90);
+    stroke.width = Math.max(1, mul(dp, 0.9));
+    cv.drawRect(d1, d1, sub(w, d1), sub(h, d1), stroke);
+
+    if (tier >= 2) {
+      // șirul de perle sculptate, în șanț
+      const depth = div(add(d2, d3), 2);
+      const rb = mul(fw, 0.068);
+      const pearlCol = tier === 3 ? light : blend(base, WHITE, 0.42);
+      const bead = (x, y) => {
+        fill.color = withAlpha(deep, 0x80);
+        cv.drawCircle(add(x, mul(rb, 0.3)), add(y, mul(rb, 0.35)), rb, fill);
+        fill.color = pearlCol;
+        cv.drawCircle(x, y, rb, fill);
+        fill.color = withAlpha(WHITE, 0xA0);
+        cv.drawCircle(sub(x, mul(rb, 0.3)), sub(y, mul(rb, 0.3)), mul(rb, 0.36), fill);
+      };
+      const row = (len, at) => {
+        const span = sub(len, mul(2, depth));
+        const n = Math.max(1, trunc(div(span, mul(rb, 3.1))));
+        for (let i = 1; i < n; i++) at(add(depth, mul(span, div(i, n))));
+      };
+      row(w, (x) => bead(x, depth));
+      row(w, (x) => bead(x, sub(h, depth)));
+      row(h, (y) => bead(depth, y));
+      row(h, (y) => bead(sub(w, depth), y));
+    }
+    if (tier === 3) {
+      // rozetele din colțuri
+      const c0 = mul(fw, 0.44), rr = mul(fw, 0.30);
+      const rosette = (x, y) => {
+        fill.color = withAlpha(deep, 0x90);
+        cv.drawCircle(add(x, mul(rr, 0.14)), add(y, mul(rr, 0.16)), rr, fill);
+        fill.color = light;
+        cv.drawCircle(x, y, rr, fill);
+        stroke.color = dark; stroke.width = Math.max(1, mul(rr, 0.16));
+        cv.drawCircle(x, y, mul(rr, 0.62), stroke);
+        fill.color = deep;
+        cv.drawCircle(x, y, mul(rr, 0.2), fill);
+        fill.color = withAlpha(WHITE, 0xB0);
+        cv.drawCircle(sub(x, mul(rr, 0.4)), sub(y, mul(rr, 0.42)), mul(rr, 0.16), fill);
+      };
+      rosette(c0, c0); rosette(sub(w, c0), c0); rosette(c0, sub(h, c0)); rosette(sub(w, c0), sub(h, c0));
+    }
+    // passe-partout-ul, ca la rama obișnuită
+    fill.color = pal.dark ? blend(pal.background, WHITE, 0.28) : blend(pal.background, WHITE, 0.55);
+    cv.drawRect(fw, fw, sub(w, fw), sub(h, fw), fill);
+  }
+
+  /** Semnul rarității, în colțul din stânga jos, oglinda semnăturii: frunză, floare sau picătură de aur, cu numele treptei. */
+  function rarityMark(cv, inner, m, pal, tier, label) {
+    const inkColor = ink(pal);
+    const s = mul(m, 0.036);
+    const x = add(inner.left, mul(m, 0.05)), base = sub(inner.bottom, mul(m, 0.05));
+    const cx = add(x, mul(s, 0.5)), cy = sub(base, mul(s, 0.3));
+    const q = new Path();
+    if (tier === 1) {
+      // frunza
+      q.moveTo(sub(cx, mul(s, 0.5)), add(cy, mul(s, 0.4)));
+      q.quadTo(sub(cx, mul(s, 0.35)), sub(cy, mul(s, 0.6)), add(cx, mul(s, 0.5)), sub(cy, mul(s, 0.45)));
+      q.quadTo(add(cx, mul(s, 0.4)), add(cy, mul(s, 0.5)), sub(cx, mul(s, 0.5)), add(cy, mul(s, 0.4)));
+      q.close();
+      fill.color = withAlpha(inkColor, 0xD8);
+      cv.drawPath(q, fill);
+      stroke.color = pal.background; stroke.width = Math.max(F(0.8), mul(s, 0.06));
+      cv.drawLine(sub(cx, mul(s, 0.42)), add(cy, mul(s, 0.33)), add(cx, mul(s, 0.3)), sub(cy, mul(s, 0.28)), stroke);
+    } else if (tier === 2) {
+      // floarea: cinci petale în jurul unui miez
+      fill.color = withAlpha(inkColor, 0xD8);
+      for (let k = 0; k < 5; k++) {
+        const a = sub(mul(k, 1.2566), QUARTER);
+        cv.drawCircle(add(cx, mul(cos(a), s, 0.3)), add(cy, mul(sin(a), s, 0.3)), mul(s, 0.23), fill);
+      }
+      fill.color = pal.background;
+      cv.drawCircle(cx, cy, mul(s, 0.15), fill);
+    } else {
+      // picătura de aur
+      q.moveTo(cx, sub(cy, mul(s, 0.68)));
+      q.quadTo(add(cx, mul(s, 0.1)), sub(cy, mul(s, 0.2)), add(cx, mul(s, 0.34)), add(cy, mul(s, 0.14)));
+      q.lineTo(sub(cx, mul(s, 0.34)), add(cy, mul(s, 0.14)));
+      q.quadTo(sub(cx, mul(s, 0.1)), sub(cy, mul(s, 0.2)), cx, sub(cy, mul(s, 0.68)));
+      q.close();
+      const gold = rgb(0xD4, 0xA9, 0x3C);
+      fill.color = gold;
+      cv.drawPath(q, fill);
+      cv.drawCircle(cx, add(cy, mul(s, 0.16)), mul(s, 0.345), fill);
+      stroke.color = withAlpha(rgb(0x6A, 0x4A, 0x10), 0xB0); stroke.width = Math.max(F(0.7), mul(s, 0.05));
+      cv.drawCircle(cx, add(cy, mul(s, 0.16)), mul(s, 0.345), stroke);
+      fill.color = gold;
+      cv.drawCircle(cx, add(cy, mul(s, 0.14)), mul(s, 0.31), fill);
+      fill.color = withAlpha(rgb(0xFF, 0xF4, 0xC8), 0xE0);
+      cv.drawCircle(sub(cx, mul(s, 0.12)), add(cy, mul(s, 0.04)), mul(s, 0.09), fill);
+    }
+    if (label) {
+      const t = { style: "F", italic: true, align: "left", size: mul(m, 0.026), color: withAlpha(inkColor, 0xD0) };
+      cv.drawText(label, add(x, mul(s, 1.35)), base, t);
+    }
   }
 
   function frameOver(cv, inner, dp, pal, doubleLine) {
@@ -1373,7 +1560,7 @@
     const inner = innerRect(w, h, pl);
     stroke.shader = null; fill.shader = null;
 
-    frameUnder(cv, w, h, dp, pl);
+    frameUnder(cv, w, h, dp, pl, p.seed);
     cv.save();
     cv.clipRect(inner.left, inner.top, inner.right, inner.bottom);
     background(cv, inner, dp, r, pal, pl.texture);
@@ -1440,6 +1627,7 @@
       text.color = withAlpha(ink(pal), 0xD0);
       cv.drawText(p.signature, sub(inner.right, mul(m, 0.05)), sub(inner.bottom, mul(m, 0.05)), text);
     }
+    if (pl.tier > 0) rarityMark(cv, inner, Math.min(w, h), pal, pl.tier, p.tierLabel || null);
     cv.restore();
     frameOver(cv, inner, dp, pal, pl.doubleLine);
   }
@@ -1563,7 +1751,7 @@
     const inner = innerRect(w, h, pl);
     const m = Math.min(w, h);
     stroke.shader = null; fill.shader = null;
-    frameUnder(cv, w, h, dp, pl);
+    frameUnder(cv, w, h, dp, pl, p.seed);
     cv.save();
     cv.clipRect(inner.left, inner.top, inner.right, inner.bottom);
     background(cv, inner, dp, r, pal, pl.texture);
@@ -1721,5 +1909,6 @@
     render, ink, Path, Recorder, Canvas2D, NullCanvas,
     renderEnvelope, decode, signature, paramsFromPiece, CODE_VERSION, GEN,
     renderBack, stampFor, stampDate,
+    tierOf,
     ARMONIE, NEON, PASTEL, TUS, BRUT, REGISTERS, _internals: { f, F, hsv, luminance, contrast, mix, generate, wobble } };
 });
