@@ -454,6 +454,7 @@
       nervous: f(o.nervous / 255), slow: f(o.slow / 255),
       light: o.light === 255 ? -1 : f(o.light / 254), battery: o.battery === 255 ? -1 : f(o.battery / 254),
       seed: BigInt(o.seed), gen: o.gen, signature: o.signature || null,
+      tierLabel: o.tierLabel || null, reveal: o.reveal !== false,
     };
   }
 
@@ -464,7 +465,7 @@
     return { family: pl.family, backdrop: pl.backdrop, texture: pl.texture, palette: pl.pal.name, register: pl.pal.register, dark: pl.pal.dark,
       bg: hex(pl.pal.background), stem: hex(pl.pal.stem), ramp: pl.pal.ramp.map(hex).join(","), tip: hex(pl.pal.tip), accents: pl.pal.accents.map(hex).join(","),
       frameW: pl.frameW, double: pl.doubleLine, frame: hex(pl.frameColor), volume: pl.volume, drawSeed: pl.drawSeed.toString(), pearl: pl.pearl, relief: pl.relief,
-      cx: lay.cx, cy: lay.cy, scale: lay.scale, amount: lay.amount };
+      cx: lay.cx, cy: lay.cy, scale: lay.scale, amount: lay.amount, tier: pl.tier };
   }
 
 
@@ -1834,7 +1835,8 @@
 
   // ------------------------------------------------------------------ codul unui dar (Codec.kt)
 
-  const CODE_VERSION = 6, GEN = 3;
+  const CODE_VERSION = 6, GEN = 4;
+  const TIER_NAMES = { ro: [null, "Piesă rară", "Piesă de colecție", "Seva de aur"], en: [null, "Rare piece", "Collector's piece", "Golden Seva"] };
 
   /**
    * Din codul de după # al unui link: tabloul, cu tot ce poartă. Întoarce null dacă nu e un cod de Seva.
@@ -1902,7 +1904,8 @@
   /** Parametrii compozitorului pentru un dar decodat. */
   function paramsFromPiece(piece, lang) {
     return paramsFromCase({ strokes: piece.strokes, nervous: piece.nervous, slow: piece.slow, light: piece.light, battery: piece.battery,
-      seed: piece.seed, gen: piece.gen, signature: signature(piece.author, piece.createdAt, lang) });
+      seed: piece.seed, gen: piece.gen, signature: signature(piece.author, piece.createdAt, lang),
+      tierLabel: piece.gen >= 4 ? (TIER_NAMES[lang] || TIER_NAMES.en)[tierOf(piece.seed)] : null });
   }
 
   return { Random, colorToHSV, HSVToColor, blend, withAlpha, hex, Palette, pickPalette, plan, innerRect, fit, layout, paramsFromCase, planInfo,
