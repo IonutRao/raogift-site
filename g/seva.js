@@ -641,7 +641,7 @@
     drawBitmapAt(bmp, x, y) { this.ctx.drawImage(bmp.canvas, x, y); }
     drawNoteLine(str, x, y, p) { this.drawText(str, x, y, p); }
     drawBitmap(bmp, l, t, r, b, a) {
-      const c = this.ctx; c.save(); c.globalAlpha = a / 255; c.imageSmoothingEnabled = true;
+      const c = this.ctx; c.save(); c.globalAlpha = a / 255; c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
       c.drawImage(bmp.canvas, 0, 0, bmp.w, bmp.h, l, t, r - l, b - t); c.restore();
     }
   }
@@ -1716,11 +1716,18 @@
   // ------------------------------------------------------------------ spatele cărții poștale (Composer.renderBack)
 
   /** Fața în mic, ca timbru pentru spate: o cincime din lățime, desenată cu grosimile micșorate la fel. */
-  function stampFor(cv, w, h, dp, p) {
+  /**
+   * Timbrul de pe spate: fața, micșorată la o cincime. E aceeași față, de pe aceeași coală, nu una compusă din nou la
+   * mărimea timbrului. `front` = fața deja desenată (o pânză Canvas2D de w x h); fără ea, se desenează acum.
+   */
+  function stampFor(cv, w, h, dp, p, front) {
     const sw = Math.max(trunc(mul(w, 0.2)), 8), sh = Math.max(trunc(div(mul(sw, h), w)), 8);
     const st = cv.offscreen(sw, sh);
     st.w = sw; st.h = sh;
-    render(st, sw, sh, div(mul(dp, sw), w), p);
+    let full = front;
+    if (!full) { full = cv.offscreen(w, h); render(full, w, h, dp, p); }
+    full.w = w; full.h = h;
+    st.drawBitmap(full, 0, 0, sw, sh, 255);
     return st;
   }
 
@@ -1841,6 +1848,13 @@
   // ------------------------------------------------------------------ codul unui dar (Codec.kt)
 
   const CODE_VERSION = 7, GEN = 4;
+
+  /**
+   * Coala: orice tablou se compune mereu la aceeași mărime (ca în aplicație, Composer.SHEET_*), apoi doar se mărește sau
+   * se micșorează unde e arătat. Compoziția nu are voie să afle cât de mare e locul: unele alegeri țin de mărime
+   * (câte fire de granulație are hârtia), iar un număr diferit de alegeri mută tot ce se trage la sorți după ele.
+   */
+  const SHEET = { w: 1080, h: 1800, dp: 3 };
   const TIER_NAMES = { ro: [null, "Piesă rară", "Piesă de colecție", "Seva de aur"], en: [null, "Rare piece", "Collector's piece", "Golden Seva"] };
 
   /**
@@ -1936,7 +1950,7 @@
 
   return { Random, colorToHSV, HSVToColor, blend, withAlpha, hex, Palette, pickPalette, plan, innerRect, fit, layout, paramsFromCase, planInfo,
     render, ink, Path, Recorder, Canvas2D, NullCanvas,
-    renderEnvelope, decode, signature, paramsFromPiece, CODE_VERSION, GEN,
+    renderEnvelope, decode, signature, paramsFromPiece, CODE_VERSION, GEN, SHEET,
     renderBack, stampFor, stampDate, renderEnvelopePal,
     tierOf,
     ARMONIE, NEON, PASTEL, TUS, BRUT, REGISTERS, _internals: { f, F, hsv, luminance, contrast, mix, generate, wobble } };

@@ -80,7 +80,7 @@
   <p id="update" class="muted" hidden></p>
   <p id="foot" class="muted" hidden></p>
 </main>
-<script src="seva.js?v=5"></script>
+<script src="seva.js?v=6"></script>
 <script>
 (function () {
   "use strict";
@@ -183,18 +183,29 @@
       var w = Math.round(cssW * dpr), h = Math.round(w / 0.6);
       art.width = w; art.height = h;
       pic.style.width = cssW + "px";
-      // grosimile se raportează la lățimea telefonului, ca în aplicație
-      var dp = dpr * cssW / Math.min(window.innerWidth || cssW, 440);
-      Seva.render(new Seva.Canvas2D(art.getContext("2d"), w, h, mk), w, h, dp, params);
+      // tabloul se compune mereu pe aceeași coală, ca în aplicație, și abia apoi se micșorează cât încape aici:
+      // așa arată la fel pe orice ecran și la fel ca în Seva
+      var S = Seva.SHEET;
+      var show = function (sheet, into) {
+        var c = into.getContext("2d");
+        c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
+        c.drawImage(sheet, 0, 0, S.w, S.h, 0, 0, into.width, into.height);
+      };
+      var frontSheet = mk(S.w, S.h);
+      var fcv = new Seva.Canvas2D(frontSheet.getContext("2d"), S.w, S.h, mk);
+      Seva.render(fcv, S.w, S.h, S.dp, params);
+      show(frontSheet, art);
       drawn = true;
       // spatele, doar pentru un gând obișnuit: cel top secret se citește numai în Seva
       if (piece.note && !piece.secret && !piece.burned) {
         try {
           var backc = $("backc");
           backc.width = w; backc.height = h;
-          var bcv = new Seva.Canvas2D(backc.getContext("2d"), w, h, mk);
+          var backSheet = mk(S.w, S.h);
+          var bcv = new Seva.Canvas2D(backSheet.getContext("2d"), S.w, S.h, mk);
           var at = piece.noteAt > 0 ? piece.noteAt : piece.createdAt;
-          Seva.renderBack(bcv, w, h, dp, params, piece.note, Seva.signature(piece.noteBy || "", at, lang), Seva.stampDate(at), Seva.stampFor(bcv, w, h, dp, params), null);
+          Seva.renderBack(bcv, S.w, S.h, S.dp, params, piece.note, Seva.signature(piece.noteBy || "", at, lang), Seva.stampDate(at), Seva.stampFor(bcv, S.w, S.h, S.dp, params, fcv), null);
+          show(backSheet, backc);
           backc.hidden = false;
           hasBack = true;
         } catch (e) { hasBack = false; }
