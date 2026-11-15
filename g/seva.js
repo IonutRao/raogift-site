@@ -1656,13 +1656,173 @@
    * Plicul în care pleacă un dar: închis, pe lat, în culorile tabloului dinăuntru (hârtia și rama lui),
    * cu un sigiliu și două rânduri de text. Dă de bănuit, fără să arate nimic.
    */
-  function renderEnvelope(cv, w, h, p, title, from, secret) {
+  function renderEnvelope(cv, w, h, p, title, from, secret, occasion) {
     const pl = plan(w, h, p);
-    renderEnvelopePal(cv, w, h, pl.pal, pl.frameColor, title, from, secret);
+    renderEnvelopePal(cv, w, h, pl.pal, pl.frameColor, title, from, secret, occasion);
+  }
+
+  // ---- plicurile de ocazie (doar în pagină: aplicația nu mai desenează plicuri, darul pleacă doar ca link)
+  //
+  // Ocazia e ambalajul darului, nu tabloul: 1 = zi de naștere (fundă aurie pe sigiliu, confetti), 2 = Crăciun
+  // (crenguțe de brad cu boabe roșii, ninsoare, stea pe sigiliu). Plicul rămâne în culorile lui; ornamentele
+  // se desenează peste hârtie, sub sigiliu și sub text. Totul e hotărât dinainte, din aceleași numere, ca plicul
+  // din conversație și cel din pagină să fie același.
+
+  /** Un șir de numere „la întâmplare”, mereu același: ornamentele stau la fel pe orice plic. */
+  function festiveRandom(seed) {
+    let a = seed >>> 0;
+    return function () { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  }
+
+  /** Locul rămâne liber în jurul sigiliului și al celor două rânduri de text. */
+  function festiveFree(x, y, u, bcx, tipY, sr) {
+    if (Math.hypot(x - bcx, y - tipY) < sr + 4 * u) return false;
+    if (Math.abs(x - bcx) < 46 * u && y > tipY + sr + 3 * u && y < tipY + sr + 23 * u) return false;
+    return true;
+  }
+
+  /** Ornamentele de pe hârtie, sub sigiliu. */
+  function festiveUnder(cv, u, body, pal, occasion, bcx, tipY, sr) {
+    const rnd = festiveRandom(occasion === 1 ? 20261 : 20262);
+    const L = body.left + 4 * u, T = body.top + 4 * u, W = (body.right - body.left) - 8 * u, H = (body.bottom - body.top) - 8 * u;
+    if (occasion === 1) {
+      // confetti: buline, fâșii de hârtie și câteva serpentine, în culorile plicului și în câteva culori de petrecere
+      const cols = [pal.stem, pal.tip, rgb(0xE8, 0xB8, 0x4A), rgb(0xE8, 0x70, 0x5A), rgb(0x4F, 0xB3, 0xA5), rgb(0x9B, 0x7B, 0xD8)];
+      for (let i = 0; i < 6; i++) {
+        let x = 0, y = 0, k = 0;
+        do { x = L + rnd() * W; y = T + rnd() * H; k++; } while (!festiveFree(x, y, u, bcx, tipY, sr + 6 * u) && k < 30);
+        const len = (9 + rnd() * 8) * u, ang = rnd() * Math.PI * 2, amp = (1.6 + rnd() * 1.4) * u;
+        const dx = Math.cos(ang), dy = Math.sin(ang);
+        const path = new Path();
+        path.moveTo(x, y);
+        const n = 4;
+        for (let j = 1; j <= n; j++) {
+          const side = j % 2 ? 1 : -1, t0 = (j - 0.5) / n, t1 = j / n;
+          path.quadTo(x + dx * len * t0 - dy * amp * side, y + dy * len * t0 + dx * amp * side, x + dx * len * t1, y + dy * len * t1);
+        }
+        stroke.color = withAlpha(cols[Math.floor(rnd() * cols.length)], 0xD0); stroke.width = 0.55 * u;
+        cv.drawPath(path, stroke);
+      }
+      for (let i = 0; i < 84; i++) {
+        const x = L + rnd() * W, y = T + rnd() * H, kind = rnd(), col = cols[Math.floor(rnd() * cols.length)], rot = rnd() * 180, size = 0.8 + rnd() * 0.7;
+        if (!festiveFree(x, y, u, bcx, tipY, sr)) continue;
+        fill.color = withAlpha(col, 0xE6);
+        if (kind < 0.42) cv.drawCircle(x, y, 0.85 * size * u, fill);
+        else {
+          cv.save(); cv.translate(x, y); cv.rotate(rot);
+          if (kind < 0.8) cv.drawRect(-1.5 * size * u, -0.5 * size * u, 1.5 * size * u, 0.5 * size * u, fill);
+          else { const tri = new Path(); tri.moveTo(0, -1.1 * size * u); tri.lineTo(1.0 * size * u, 0.8 * size * u); tri.lineTo(-1.0 * size * u, 0.8 * size * u); tri.close(); cv.drawPath(tri, fill); }
+          cv.restore();
+        }
+      }
+    } else {
+      // ninsoare: fulgi mărunți peste tot și câțiva fulgi cu șase brațe
+      const snow = pal.dark ? rgb(0xFF, 0xFF, 0xFF) : rgb(0x8F, 0xA9, 0xC4);
+      for (let i = 0; i < 90; i++) {
+        const x = L + rnd() * W, y = T + rnd() * H, r = (0.3 + rnd() * 0.65) * u, a = 0x70 + Math.floor(rnd() * 0x70);
+        if (!festiveFree(x, y, u, bcx, tipY, sr)) continue;
+        fill.color = withAlpha(snow, a);
+        cv.drawCircle(x, y, r, fill);
+      }
+      for (let i = 0; i < 9; i++) {
+        let x = 0, y = 0, k = 0;
+        do { x = L + rnd() * W; y = T + rnd() * H; k++; } while (!festiveFree(x, y, u, bcx, tipY, sr + 3 * u) && k < 30);
+        const r = (2.0 + rnd() * 1.6) * u, turn = rnd() * 60;
+        stroke.color = withAlpha(snow, pal.dark ? 0xD0 : 0xE0); stroke.width = 0.32 * u;
+        cv.save(); cv.translate(x, y); cv.rotate(turn);
+        for (let j = 0; j < 3; j++) {
+          cv.drawLine(-r, 0, r, 0, stroke);
+          // săgețile de la capete
+          for (const sgn of [-1, 1]) { cv.drawLine(sgn * r * 0.62, 0, sgn * r * 0.9, -r * 0.26, stroke); cv.drawLine(sgn * r * 0.62, 0, sgn * r * 0.9, r * 0.26, stroke); }
+          cv.rotate(60);
+        }
+        cv.restore();
+      }
+      // crenguțe de brad în două colțuri, cu boabe roșii
+      const green = pal.dark ? rgb(0x5A, 0xA8, 0x7C) : rgb(0x2E, 0x6E, 0x4E), deep = pal.dark ? rgb(0x3C, 0x82, 0x5C) : rgb(0x1F, 0x52, 0x39);
+      const sprig = function (x0, y0, deg, len) {
+        const a = (deg * Math.PI) / 180, dx = Math.cos(a), dy = Math.sin(a);
+        stroke.color = deep; stroke.width = 0.6 * u;
+        cv.drawLine(x0, y0, x0 + dx * len, y0 + dy * len, stroke);
+        const step = 1.15 * u, n = Math.floor(len / step);
+        for (let i = 1; i <= n; i++) {
+          const t = i / n, px = x0 + dx * step * i, py = y0 + dy * step * i, nl = (4.4 - 3.0 * t) * u;
+          for (const sgn of [-1, 1]) {
+            const b = a + sgn * 0.62, ex = px + Math.cos(b) * nl, ey = py + Math.sin(b) * nl;
+            stroke.color = i % 2 ? green : deep; stroke.width = 0.42 * u;
+            cv.drawLine(px, py, ex, ey, stroke);
+          }
+        }
+      };
+      const berries = function (x, y) {
+        for (const [ox, oy, r] of [[0, 0, 1.7], [2.6, 1.3, 1.45], [0.7, 2.9, 1.35]]) {
+          fill.color = rgb(0x8E, 0x1F, 0x1A); cv.drawCircle(x + ox * u + 0.2 * u, y + oy * u + 0.3 * u, r * u, fill);
+          fill.color = rgb(0xCC, 0x3A, 0x2E); cv.drawCircle(x + ox * u, y + oy * u, r * u, fill);
+          fill.color = withAlpha(rgb(0xFF, 0xFF, 0xFF), 0x90); cv.drawCircle(x + (ox - 0.5) * u, y + (oy - 0.5) * u, r * 0.28 * u, fill);
+        }
+      };
+      const ox = body.right - 7 * u, oy = body.top + 7 * u;
+      sprig(ox, oy, 152, 27 * u); sprig(ox, oy, 176, 21 * u); sprig(ox, oy, 124, 19 * u);
+      berries(ox - 3.2 * u, oy - 0.6 * u);
+      const px = body.left + 7 * u, py = body.bottom - 7 * u;
+      sprig(px, py, -28, 25 * u); sprig(px, py, -4, 20 * u); sprig(px, py, -56, 17 * u);
+      berries(px + 0.6 * u, py - 2.4 * u);
+    }
+  }
+
+  /** Funda de pe sigiliu: două bucle și două capete de panglică aurie, desenate înaintea cerii. */
+  function festiveBow(cv, u, pal, bcx, tipY) {
+    const gold = rgb(0xE2, 0xAE, 0x45), dark = rgb(0xB3, 0x82, 0x2C), light = rgb(0xF4, 0xD4, 0x82);
+    for (const s of [-1, 1]) {
+      // capătul panglicii, cu vârf despicat
+      const tail = new Path();
+      tail.moveTo(bcx + s * 1.5 * u, tipY + 1 * u);
+      tail.lineTo(bcx + s * 16.8 * u, tipY + 8.4 * u);
+      tail.lineTo(bcx + s * 13.6 * u, tipY + 9.4 * u);
+      tail.lineTo(bcx + s * 14.2 * u, tipY + 12.6 * u);
+      tail.lineTo(bcx + s * 0.5 * u, tipY + 5.2 * u);
+      tail.close();
+      fill.color = dark; cv.drawPath(tail, fill);
+    }
+    for (const s of [-1, 1]) {
+      const loop = new Path();
+      loop.moveTo(bcx, tipY);
+      loop.quadTo(bcx + s * 8 * u, tipY - 13.5 * u, bcx + s * 18.5 * u, tipY - 7 * u);
+      loop.quadTo(bcx + s * 23 * u, tipY - 1.5 * u, bcx + s * 17.5 * u, tipY + 3.6 * u);
+      loop.quadTo(bcx + s * 8 * u, tipY + 5.2 * u, bcx, tipY);
+      loop.close();
+      fill.color = 0x38 << 24;
+      cv.save(); cv.translate(0.5 * u, 0.9 * u); cv.drawPath(loop, fill); cv.restore();
+      fill.color = gold; cv.drawPath(loop, fill);
+      stroke.color = dark; stroke.width = 0.4 * u; cv.drawPath(loop, stroke);
+      // adâncimea buclei și un fir de lumină
+      const inner = new Path();
+      inner.moveTo(bcx + s * 5 * u, tipY - 1.6 * u);
+      inner.quadTo(bcx + s * 10 * u, tipY - 8.4 * u, bcx + s * 16.2 * u, tipY - 4.6 * u);
+      inner.quadTo(bcx + s * 18.6 * u, tipY - 1.4 * u, bcx + s * 15.4 * u, tipY + 1.2 * u);
+      inner.quadTo(bcx + s * 9 * u, tipY + 2.2 * u, bcx + s * 5 * u, tipY - 1.6 * u);
+      inner.close();
+      fill.color = dark; cv.drawPath(inner, fill);
+      const shine = new Path();
+      shine.moveTo(bcx + s * 4.5 * u, tipY - 5.2 * u);
+      shine.quadTo(bcx + s * 9.5 * u, tipY - 11.2 * u, bcx + s * 16.5 * u, tipY - 7.2 * u);
+      stroke.color = withAlpha(light, 0xD0); stroke.width = 0.5 * u; cv.drawPath(shine, stroke);
+    }
+  }
+
+  /** Steaua de pe sigiliul de Crăciun, în locul inițialei. */
+  function festiveStar(cv, cx, cy, r, color) {
+    const star = new Path();
+    for (let i = 0; i < 10; i++) {
+      const a = -Math.PI / 2 + (i * Math.PI) / 5, rr = i % 2 ? r * 0.42 : r;
+      if (i === 0) star.moveTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); else star.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr);
+    }
+    star.close();
+    fill.color = color; cv.drawPath(star, fill);
   }
 
   /** Același plic, dintr-o paletă dată direct: pentru plicurile din cartonașele de link, pe familii de culori. */
-  function renderEnvelopePal(cv, w, h, pal, frameColor, title, from, secret) {
+  function renderEnvelopePal(cv, w, h, pal, frameColor, title, from, secret, occasion) {
     const u = div(h, 100);                                   // unitatea: un procent din înălțime
     cv.drawColor(blend(frameColor, BLACK, 0.35));
     // corpul plicului
@@ -1691,6 +1851,7 @@
     cv.drawRoundRect(add(body.left, e), add(body.top, e), sub(body.right, e), sub(body.bottom, e), mul(1.4, u), stroke);
     // sigiliul: ceară în culoarea tulpinii, cu inel și inițiala
     const sr = mul(8.2, u);
+    if (occasion) { festiveUnder(cv, u, body, pal, occasion, bcx, tipY, sr); if (occasion === 1) festiveBow(cv, u, pal, bcx, tipY); }
     fill.color = 0x40 << 24;
     cv.drawCircle(add(bcx, mul(0.5, u)), add(tipY, mul(0.9, u)), sr, fill);
     fill.color = pal.stem;
@@ -1699,7 +1860,8 @@
     cv.drawCircle(bcx, tipY, mul(sr, 0.78), stroke);
     const bright = add(mul(0.299, red(pal.stem)), mul(0.587, green(pal.stem)), mul(0.114, blue(pal.stem))) > 140;
     const seal = { style: "F", italic: true, align: "center", size: mul(sr, 1.15), color: bright ? blend(pal.stem, BLACK, 0.7) : blend(pal.stem, WHITE, 0.85) };
-    cv.drawText("S", bcx, add(tipY, mul(sr, 0.4)), seal);
+    if (occasion === 2) festiveStar(cv, bcx, tipY, sr * 0.6, seal.color);
+    else cv.drawText("S", bcx, add(tipY, mul(sr, 0.4)), seal);
     // cele două rânduri, sub sigiliu
     const line = { style: "F", italic: true, align: "center", color: withAlpha(inkColor, 0xE6), size: mul(7.4, u) };
     const maxW = sub(rw(body), mul(14, u));
@@ -1757,7 +1919,7 @@
    * Spatele: aceeași ramă și aceeași hârtie ca fața, un ecou foarte palid al compoziției ca filigran, gândul scris
    * cu serif italic, semnatarul și data jos-dreapta, iar sus-dreapta fața în mic, ca timbru, cu ștampila datei.
    */
-  function renderBack(cv, w, h, dp0, p, note, signed, stampDate, stamp, secret) {
+  function renderBack(cv, w, h, dp0, p, note, signed, stampDate, stamp, secret, occasion, occasionLabel) {
     const dp = f(dp0);
     const pl = plan(w, h, p);
     const r = pl.r, pal = pl.pal;
@@ -1802,15 +1964,40 @@
       cv.restore();
       // ștampila: două cercuri și data, cu cerneală rară
       const cx = sub(sub(right, sw), mul(m, 0.02)), cy = sub(add(top, sh), mul(m, 0.01));
-      const rad = mul(m, 0.075);
+      // un dar de ocazie (1 = zi de naștere, 2 = Crăciun) are ștampila lui, mai mare: semnul, urarea și data
+      const occ = occasion && occasionLabel ? occasion : 0;
+      const rad = mul(m, occ ? 0.098 : 0.075);
       stroke.color = withAlpha(inkColor, 0x80); stroke.width = mul(1.3, dp);
       cv.drawCircle(cx, cy, rad, stroke);
       stroke.width = mul(0.8, dp);
       cv.drawCircle(cx, cy, mul(rad, 0.78), stroke);
-      const tiny = { style: "F", align: "center", color: withAlpha(inkColor, 0x90), size: mul(rad, 0.34), letterSpacing: F(0.12) };
-      cv.drawText("SEVA", cx, sub(cy, mul(rad, 0.08)), tiny);
-      tiny.size = mul(rad, 0.26); tiny.letterSpacing = F(0.04);
-      cv.drawText(stampDate, cx, add(cy, mul(rad, 0.3)), tiny);
+      if (!occ) {
+        const tiny = { style: "F", align: "center", color: withAlpha(inkColor, 0x90), size: mul(rad, 0.34), letterSpacing: F(0.12) };
+        cv.drawText("SEVA", cx, sub(cy, mul(rad, 0.08)), tiny);
+        tiny.size = mul(rad, 0.26); tiny.letterSpacing = F(0.04);
+        cv.drawText(stampDate, cx, add(cy, mul(rad, 0.3)), tiny);
+      } else {
+        const sy = sub(cy, mul(rad, 0.44));
+        stroke.color = withAlpha(inkColor, 0x90); stroke.width = mul(0.9, dp);
+        if (occ === 1) {
+          // o lumânare: trupul, talpa și flacăra
+          cv.drawLine(cx, sub(sy, mul(rad, 0.10)), cx, add(sy, mul(rad, 0.16)), stroke);
+          cv.drawLine(sub(cx, mul(rad, 0.10)), add(sy, mul(rad, 0.16)), add(cx, mul(rad, 0.10)), add(sy, mul(rad, 0.16)), stroke);
+          fill.color = withAlpha(inkColor, 0x90);
+          cv.drawCircle(cx, sub(sy, mul(rad, 0.19)), mul(rad, 0.06), fill);
+        } else {
+          // un fulg: trei linii încrucișate
+          const fl = mul(rad, 0.17), hx = mul(fl, 0.5), hy = mul(fl, 0.8660254);
+          cv.drawLine(sub(cx, fl), sy, add(cx, fl), sy, stroke);
+          cv.drawLine(sub(cx, hx), sub(sy, hy), add(cx, hx), add(sy, hy), stroke);
+          cv.drawLine(sub(cx, hx), add(sy, hy), add(cx, hx), sub(sy, hy), stroke);
+        }
+        const tiny = { style: "F", align: "center", color: withAlpha(inkColor, 0x90), size: mul(rad, 0.21), letterSpacing: F(0.08) };
+        while (cv.measureText(occasionLabel, tiny) > mul(rad, 1.42) && tiny.size > mul(rad, 0.1)) tiny.size = mul(tiny.size, 0.94);
+        cv.drawText(occasionLabel, cx, add(cy, mul(rad, 0.02)), tiny);
+        tiny.size = mul(rad, 0.2); tiny.letterSpacing = F(0.04);
+        cv.drawText(stampDate, cx, add(cy, mul(rad, 0.34)), tiny);
+      }
       textTop = add(add(top, sh), mul(margin, 0.9));
     }
 
@@ -1907,6 +2094,11 @@
       const burned = (flags & 2) !== 0;
       const secret = !burned && note !== null && (flags & 1) !== 0;
       if (burned) { note = null; noteBy = blank(by) ? null : by; }
+      // ocazia darului, în doi biți din semne: 0 = fără, 1 = zi de naștere, 2 = Crăciun (3 = necunoscută, ca fără)
+      let occasion = version >= 7 ? (flags >> 3) & 3 : 0;
+      if (occasion === 3) occasion = 0;
+      // un dar de ocazie fără gând are totuși spate: ștampila, semnatarul și data
+      if (occasion && noteBy === null) noteBy = blank(by) ? null : by;
       const n = u8();
       const strokes = [];
       for (let i = 0; i < n; i++) {
@@ -1928,7 +2120,7 @@
         strokes.push(pts);
       }
       return { version, seed, createdAt, nervous, slow, light, battery, author, from: blank(from) ? null : from,
-        note, noteBy, noteAt, gen, secret, burned, strokes, newer: gen > GEN };
+        note, noteBy, noteAt, gen, secret, burned, occasion, strokes, newer: gen > GEN };
     } catch (e) { return null; }
   }
 

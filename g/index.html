@@ -57,6 +57,7 @@
   .btn:active { filter: brightness(.9); }
   .muted { color:var(--muted); font-size:13.5px; margin-top:16px; }
   #foot { margin-top:30px; }
+  #fest { position:fixed; left:0; top:0; width:100vw; height:100vh; pointer-events:none; z-index:10; }
   [hidden] { display:none !important; }
   @media (prefers-reduced-motion: reduce) { #env, #pic, #card { transition:none; } #env.sway, #hint { animation:none; } }
 </style>
@@ -80,7 +81,7 @@
   <p id="update" class="muted" hidden></p>
   <p id="foot" class="muted" hidden></p>
 </main>
-<script src="seva.js?v=6"></script>
+<script src="seva.js?v=7"></script>
 <script>
 (function () {
   "use strict";
@@ -88,6 +89,7 @@
   var T = {
     ro: {
       title: "Un tablou pentru tine", envFrom: "de la %s", envOpen: "atinge ca să-l deschizi", secret: "TOP SECRET",
+      wish: ["", "La mulți ani!", "Crăciun fericit!"], stamp: ["", "LA MULȚI ANI", "CRĂCIUN FERICIT"],
       hint: "Atinge plicul ca să-l deschizi", envLabel: "Deschide plicul", from: "de la %s",
       turn: "Atinge tabloul ca să-l întorci", cardLabel: "Întoarce tabloul",
       back: "Pe spate e scris un gând.", backSecret: "Pe spate e un gând top secret. Se citește doar în Seva.", backBurned: "Pe spate a fost un gând top secret.",
@@ -104,6 +106,7 @@
     },
     en: {
       title: "A piece for you", envFrom: "from %s", envOpen: "tap to open", secret: "TOP SECRET",
+      wish: ["", "Happy birthday!", "Merry Christmas!"], stamp: ["", "HAPPY BIRTHDAY", "MERRY CHRISTMAS"],
       hint: "Tap the envelope to open it", envLabel: "Open the envelope", from: "from %s",
       turn: "Tap the piece to turn it over", cardLabel: "Turn the piece over",
       back: "There is a thought written on the back.", backSecret: "There is a top secret thought on the back. It can only be read in Seva.", backBurned: "There was a top secret thought on the back.",
@@ -162,7 +165,10 @@
   try {
     params = Seva.paramsFromPiece(piece, lang);
     var from = piece.from ? T.envFrom.replace("%s", piece.from) : T.envOpen;
-    Seva.renderEnvelope(new Seva.Canvas2D(envc.getContext("2d"), 1200, 630, mk), 1200, 630, params, T.title, from, piece.secret && piece.note ? T.secret : null);
+    // un dar de ocazie (zi de naștere sau Crăciun) vine în plicul lui de sărbătoare, cu urarea în loc de titlu
+    var occasion = piece.occasion || 0;
+    if (occasion) document.title = T.wish[occasion];
+    Seva.renderEnvelope(new Seva.Canvas2D(envc.getContext("2d"), 1200, 630, mk), 1200, 630, params, occasion ? T.wish[occasion] : T.title, from, piece.secret && piece.note ? T.secret : null, occasion);
   } catch (e) { words(T.title, T.failed); actions(true); return; }
 
   stage.hidden = false;
@@ -197,14 +203,16 @@
       show(frontSheet, art);
       drawn = true;
       // spatele, doar pentru un gând obișnuit: cel top secret se citește numai în Seva
-      if (piece.note && !piece.secret && !piece.burned) {
+      // (un dar de ocazie are spate și fără gând: ștampila ocaziei, semnatarul și data)
+      if ((piece.note || occasion) && !piece.secret && !piece.burned) {
         try {
           var backc = $("backc");
           backc.width = w; backc.height = h;
           var backSheet = mk(S.w, S.h);
           var bcv = new Seva.Canvas2D(backSheet.getContext("2d"), S.w, S.h, mk);
           var at = piece.noteAt > 0 ? piece.noteAt : piece.createdAt;
-          Seva.renderBack(bcv, S.w, S.h, S.dp, params, piece.note, Seva.signature(piece.noteBy || "", at, lang), Seva.stampDate(at), Seva.stampFor(bcv, S.w, S.h, S.dp, params, fcv), null);
+          Seva.renderBack(bcv, S.w, S.h, S.dp, params, piece.note || "", Seva.signature(piece.noteBy || "", at, lang), Seva.stampDate(at), Seva.stampFor(bcv, S.w, S.h, S.dp, params, fcv), null,
+            occasion, occasion ? T.stamp[occasion] : null);
           show(backSheet, backc);
           backc.hidden = false;
           hasBack = true;
@@ -213,6 +221,78 @@
     } catch (e) { failed = true; }
   }
   setTimeout(drawArt, 120);
+
+  // Sărbătoarea de la deschiderea unui dar de ocazie: confetti (zi de naștere) sau ninsoare (Crăciun), peste toată
+  // pagina, câteva secunde, cu sunetul ei. Tabloul rămâne neatins: ocazia e ambalajul darului.
+  function festive(kind) {
+    try { var au = new Audio(kind === 2 ? "craciun.m4a" : "aniversare.m4a"); au.volume = 0.8; var pr = au.play(); if (pr && pr.catch) pr.catch(function () {}); } catch (e) {}
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    var cv = document.createElement("canvas");
+    cv.id = "fest"; cv.setAttribute("aria-hidden", "true");
+    document.body.appendChild(cv);
+    var k = Math.min(window.devicePixelRatio || 1, 2), W = window.innerWidth, H = window.innerHeight;
+    cv.width = Math.round(W * k); cv.height = Math.round(H * k);
+    var c = cv.getContext("2d"); c.scale(k, k);
+    var total = kind === 2 ? 8 : 5.2, bits = [], i;
+    var cols = ["#E8B84A", "#E8705A", "#4FB3A5", "#9B7BD8", "#F2E6CF", "#6FA8E8", "#E86FA8"];
+    if (kind === 2) {
+      for (i = 0; i < 150; i++) {
+        var big = Math.random() < 0.12;
+        bits.push({ x: Math.random() * W, y: Math.random() * H * 1.5 - H * 0.6, vy: big ? 46 : 62 + Math.random() * 70, size: big ? 7 + Math.random() * 5 : 1.4 + Math.random() * 2.6,
+          a: big ? 0.88 : 0.56 + Math.random() * 0.38, big: big, turn: Math.random() * 60, spin: (Math.random() - 0.5) * 40, ph: Math.random() * 6.28 });
+      }
+    } else {
+      for (var side = 0; side < 2; side++) for (i = 0; i < 95; i++) {
+        var ang = ((side === 0 ? -62 : -118) + (Math.random() - 0.5) * 44) * Math.PI / 180, sp = 760 + Math.random() * 760;
+        bits.push({ x: side === 0 ? -8 : W + 8, y: H * 0.86, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, size: 3.2 + Math.random() * 3.6,
+          col: cols[Math.floor(Math.random() * cols.length)], kind: Math.floor(Math.random() * 3), turn: Math.random() * 360, spin: (Math.random() - 0.5) * 900, ph: Math.random() * 6.28, delay: Math.random() * 0.22 });
+      }
+    }
+    var t0 = 0, last = 0;
+    function frame(now) {
+      if (!t0) { t0 = now; last = now; }
+      var t = (now - t0) / 1000, dt = Math.min((now - last) / 1000, 0.05); last = now;
+      if (t >= total) { cv.remove(); return; }
+      var fade = Math.min(t / 0.3, 1) * Math.max(0, Math.min((total - t) / 1.1, 1));
+      c.clearRect(0, 0, W, H);
+      for (var j = 0; j < bits.length; j++) {
+        var b = bits[j];
+        if (kind === 2) {
+          b.y += b.vy * dt; b.turn += b.spin * dt;
+          if (b.y > H + 20) b.y = -20;
+          var x = b.x + Math.sin(t * 1.1 + b.ph) * 14;
+          c.globalAlpha = b.a * fade;
+          if (b.big) {
+            c.save(); c.translate(x, b.y); c.rotate(b.turn * Math.PI / 180);
+            c.strokeStyle = "#fff"; c.lineWidth = 1.1; c.lineCap = "round"; c.beginPath();
+            for (var q = 0; q < 3; q++) {
+              c.moveTo(-b.size, 0); c.lineTo(b.size, 0);
+              c.moveTo(b.size * 0.6, 0); c.lineTo(b.size * 0.88, -b.size * 0.26); c.moveTo(b.size * 0.6, 0); c.lineTo(b.size * 0.88, b.size * 0.26);
+              c.moveTo(-b.size * 0.6, 0); c.lineTo(-b.size * 0.88, -b.size * 0.26); c.moveTo(-b.size * 0.6, 0); c.lineTo(-b.size * 0.88, b.size * 0.26);
+              c.rotate(Math.PI / 3);
+            }
+            c.stroke(); c.restore();
+          } else { c.fillStyle = "#fff"; c.beginPath(); c.arc(x, b.y, b.size, 0, 6.2832); c.fill(); }
+        } else {
+          if (t < b.delay) continue;
+          var drag = Math.pow(0.16, dt);
+          b.vx *= drag; b.vy = Math.min(b.vy * drag + 1250 * dt, 210);
+          b.x += (b.vx + Math.sin(t * 3.2 + b.ph) * 42) * dt; b.y += b.vy * dt; b.turn += b.spin * dt;
+          if (b.y > H + 30) continue;
+          c.globalAlpha = fade; c.fillStyle = b.col;
+          c.save(); c.translate(b.x, b.y); c.rotate(b.turn * Math.PI / 180);
+          var flat = 0.25 + 0.75 * Math.abs(Math.cos(t * 6 + b.ph));
+          if (b.kind === 0) { c.beginPath(); c.arc(0, 0, b.size * 0.62, 0, 6.2832); c.fill(); }
+          else if (b.kind === 1) c.fillRect(-b.size, -b.size * 0.42 * flat, b.size * 2, b.size * 0.84 * flat);
+          else c.fillRect(-b.size * 1.5, -b.size * 0.22, b.size * 3, b.size * 0.44);
+          c.restore();
+        }
+      }
+      c.globalAlpha = 1;
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
 
   var opened = false;
   env.addEventListener("click", function () {
@@ -223,6 +303,7 @@
     if (failed) { words(T.title, T.failed); return; }
     env.classList.remove("sway");
     env.classList.add("gone");
+    if (occasion) festive(occasion);
     setTimeout(function () {
       env.style.display = "none";
       pic.style.display = "block";
@@ -238,7 +319,7 @@
         card.addEventListener("click", flip);
         card.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); flip(); } });
         show("turn", T.turn);
-        setTimeout(function () { if (!card.classList.contains("turned")) flip(); }, 1500);
+        setTimeout(function () { if (!card.classList.contains("turned")) flip(); }, occasion ? 3200 : 1500);
       } else if (piece.note || piece.burned) {
         show("back", piece.burned ? T.backBurned : piece.secret ? T.backSecret : T.back);
       }
