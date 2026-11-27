@@ -56,6 +56,7 @@
   .btn.soft { background:transparent; color:var(--pale); border:1.2px solid var(--line); }
   .btn:active { filter: brightness(.9); }
   .muted { color:var(--muted); font-size:13.5px; margin-top:16px; }
+  #after { color:var(--pale); }
   #foot { margin-top:30px; }
   #fest { position:fixed; left:0; top:0; width:100vw; height:100vh; pointer-events:none; z-index:10; }
   [hidden] { display:none !important; }
@@ -78,6 +79,7 @@
   <a id="open" class="btn" href="#" hidden></a>
   <a id="play" class="btn soft" href="https://play.google.com/store/apps/details?id=ro.ovidiu.seva" hidden></a>
   <p id="info" class="muted" hidden></p>
+  <p id="after" class="muted" hidden></p>
   <p id="update" class="muted" hidden></p>
   <p id="foot" class="muted" hidden></p>
 </main>
@@ -95,6 +97,7 @@
       back: "Pe spate e scris un gând.", backSecret: "Pe spate e un gând top secret. Se citește doar în Seva.", backBurned: "Pe spate a fost un gând top secret.",
       open: "Deschide în Seva", play: "Seva în Google Play",
       android: "În Seva, tabloul intră în colecția ta. Dacă nu ai aplicația, butonul te duce în Google Play.",
+      after: "După ce instalezi Seva, întoarce-te la mesaj și atinge din nou plicul: abia atunci tabloul intră în colecția ta.",
       update: "Ai deja Seva și tabloul nu se deschide în ea? Actualizeaz-o din Google Play, apoi deschide din nou linkul.",
       ios: "Seva este deocamdată doar pentru Android.", iosStay: " Tabloul tău rămâne aici, la acest link.",
       other: "Pe un telefon cu Android, tabloul poate intra în colecția ta din Seva.",
@@ -112,6 +115,7 @@
       back: "There is a thought written on the back.", backSecret: "There is a top secret thought on the back. It can only be read in Seva.", backBurned: "There was a top secret thought on the back.",
       open: "Open in Seva", play: "Seva on Google Play",
       android: "In Seva, the piece joins your collection. If you do not have the app, the button takes you to Google Play.",
+      after: "Once you have installed Seva, go back to the message and tap the envelope again: only then does the piece join your collection.",
       update: "You already have Seva and the piece does not open in it? Update it from Google Play, then open the link again.",
       ios: "Seva is only on Android for now.", iosStay: " Your piece stays here, at this link.",
       other: "On an Android phone, the piece can join your collection in Seva.",
@@ -138,7 +142,7 @@
     if (android) {
       if (withCode) {
         show("open", T.open).href = "intent://g/" + code + "#Intent;scheme=seva;package=ro.ovidiu.seva;S.browser_fallback_url=" + encodeURIComponent(playUrl) + ";end";
-        show("info", T.android); show("update", T.update);
+        show("info", T.android); show("after", T.after); show("update", T.update);
       } else show("play", T.play);
     } else if (ios) show("info", T.ios + (stays ? T.iosStay : ""));
     else { show("play", T.play); show("info", T.other); }
