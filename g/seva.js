@@ -458,6 +458,25 @@
     };
   }
 
+  /**
+   * Trăsăturile unui tablou, înainte de a fi desenat: pentru preferințe (Composer.features, cu indecșii din Taste.kt).
+   * 0..4 familiile dintâi, 5 fundal întunecat, 6 cald, 7 cu a doua familie, 8 cu textură, 9 cuburile, 10..14 registrele de culoare.
+   */
+  const TASTE_FAMILIES = ["BRANCHES", "BUBBLES", "RIBBONS", "CONSTELLATION", "MOSAIC"];
+  function features(p) {
+    const pl = plan(1000, 1600, p);
+    const out = new Array(10 + REGISTERS).fill(0);
+    const fi = pl.family === "CUBES" ? 9 : TASTE_FAMILIES.indexOf(pl.family);
+    if (fi >= 0) out[fi] = 1;
+    out[10 + Math.max(0, Math.min(REGISTERS - 1, pl.pal.register))] = 1;
+    out[5] = pl.pal.dark ? 1 : 0;
+    const hue = colorToHSV(pl.pal.background)[0];
+    out[6] = f(f(f(Math.cos(f(f(f(hue - 30) * f(Math.PI)) / 180))) + 1) / 2);
+    out[7] = pl.backdrop != null ? 1 : 0;
+    out[8] = pl.texture !== "NONE" ? 1 : 0;
+    return out;
+  }
+
   /** Același text ca Composer.planInfo din aplicație, pentru comparația cu tablourile de referință */
   function planInfo(w, h, p) {
     const pl = plan(w, h, p);
@@ -2287,6 +2306,6 @@
     render, ink, Path, Recorder, Canvas2D, NullCanvas,
     renderEnvelope, decode, signature, paramsFromPiece, CODE_VERSION, GEN, SHEET,
     renderBack, stampFor, stampDate, renderEnvelopePal,
-    tierOf, renderBlank, distill, encode, envelopeKey, NOTE_MAX,
+    tierOf, renderBlank, distill, encode, envelopeKey, NOTE_MAX, features,
     ARMONIE, NEON, PASTEL, TUS, BRUT, REGISTERS, _internals: { f, F, hsv, luminance, contrast, mix, generate, wobble } };
 });

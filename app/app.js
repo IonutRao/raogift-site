@@ -12,8 +12,15 @@
 (function () {
   "use strict";
 
-  var BUILD = "probă 6";
-  var lang = /^ro\b/i.test(navigator.language || "ro") ? "ro" : "en";
+  var BUILD = "probă 7";
+  // limba: cea aleasă în Despre, altfel a telefonului
+  var lang = (function () {
+    var chosen = null;
+    try { chosen = localStorage.getItem("seva.lang"); } catch (e) { }
+    return chosen === "ro" || chosen === "en" ? chosen : /^ro\b/i.test(navigator.language || "ro") ? "ro" : "en";
+  })();
+  /** Un text cu locuri numerotate: {1}, {2}. */
+  function fmt(s) { var a = arguments; return s.replace(/\{(\d)\}/g, function (m, k) { return String(a[+k]); }); }
   var T = {
     ro: {
       hintPaper: "Desenează cu degetul\nuna sau mai multe forme.\nCât și unde desenezi contează.",
@@ -28,6 +35,74 @@
       limitTitle: "Atât pe azi", limitFree: "Azi ai păstrat cinci tablouri și ai dăruit pe loc alte cinci. Mâine poți din nou; de încercat poți încerca în continuare oricât.",
       fullTitle: "Colecția de azi e plină", fullText: "Azi ai păstrat deja cinci tablouri. Pe acesta îl poți dărui.", fullDrop: "Renunț la tablou",
       collectorLater: "Abonamentul de colecționar, cu care păstrezi și dăruiești fără limită, va veni odată cu aplicația Seva pentru iPhone.",
+      about: "Despre",
+      aboutTitle: "Despre Seva",
+      aboutTagline: "O carte poștală vie.",
+      aboutShortTag: "PE SCURT",
+      aboutHowTitle: "Cum funcționează",
+      aboutStep1: "Desenezi cu degetul una sau mai multe forme.",
+      aboutStep2: "Apeși Compune și din gest crește un tablou unic. Nu-ți place? Alt tablou.",
+      aboutStep3: "Îl păstrezi în colecție sau îl dăruiești printr-un link.",
+      aboutGestureTitle: "Gestul",
+      aboutGestureShort: "Gestul nu e copiat: din direcția, întinderea și temperamentul lui crește tabloul. Același gest poate da și alt tablou.",
+      aboutWhat: "O carte poștală vie. Desenezi cu degetul una sau mai multe forme, iar din ele se naște un tablou unic. Nicio imagine nu se repetă, pentru că niciun gest și niciun moment nu se repetă.",
+      aboutGesture: "Gestul tău nu se desenează așa cum l-ai făcut: e redus la direcție, întindere și temperament, și din el crește o compoziție într-una din șase familii: ramuri, bule, panglici, constelație, mozaic sau cuburi, uneori două împreună. Cât de mult și unde desenezi hotărăște mărimea, locul și bogăția ei. Culorile le alege telefonul, de oriunde din cercul culorilor: de cele mai multe ori în armonie, uneori în pastel, în neon, într-o singură cerneală sau, rar, urâte cu intenție. Tabloul e semnat cu numele tău și cu momentul în care l-ai făcut.",
+      aboutGiftTitle: "Daruri",
+      aboutGiftB1: "Tabloul pleacă într-un plic închis, printr-un link.",
+      aboutGiftB2: "Pe spate poți scrie un gând, o singură dată.",
+      aboutGiftB3: "Top secret: se citește o dată, apoi arde.",
+      aboutGiftB4: "De ocazie: zi de naștere sau Crăciun, cu plic de sărbătoare.",
+      aboutGift: "Un tablou poate fi dăruit: pleacă din colecția ta și rămâne doar amintirea lui. Pleacă într-un plic închis, în culorile lui, ca să rămână o surpriză; cine îl primește îl deschide în Seva și îl adaugă în colecția lui, cu numele tău pe el. Când îl dăruiești poți scrie un gând pe spate: tabloul se întoarce cu o atingere. Gândul poate fi marcat top secret; ce se întâmplă atunci afli când primești unul. Poți spune și că darul e pentru o zi de naștere sau, în preajma sărbătorilor, pentru Crăciun: atunci ajunge într-un plic de sărbătoare, se deschide cu sărbătoarea lui și își poartă ștampila pe spate. Un tablou primit poate fi dăruit mai departe. Primirea și dăruirea sunt mereu gratuite.",
+      aboutRarityTitle: "Tablouri rare",
+      aboutRarityB1: "Raritatea se află abia când apeși Păstrează.",
+      aboutRarityB2: "Zece șanse pe zi, la fel pentru toți.",
+      aboutRarityB3: "Primele zece tablouri îți aduc câte una din fiecare treaptă.",
+      aboutRarity: "Când apeși Păstrează, unele tablouri se dovedesc rare și își primesc rama și semnul: Piesă rară, cu ramă de lemn în culorile tabloului (20 din 100), Piesă de colecție, cu ramă de lemn sculptat (6 din 100), și Seva de aur, cu ramă aurită (2 din 100). Norocul se încearcă de cel mult zece ori pe zi, la fel pentru toți: primele zece tablouri păstrate sau dăruite pe loc într-o zi pot fi rare, următoarele sunt simple până a doua zi. Primele zece tablouri pe care le păstrezi îți aduc câte unul din fiecare treaptă, ca să le cunoști. Raritatea ține de tablou: nu poate fi aleasă, iar un tablou dăruit pleacă cu ea cu tot.",
+      aboutOdds: "{1} din 100",
+      aboutLuck: "Șanse la un tablou rar rămase azi: {1} din {2}.",
+      aboutStatusFree: "Azi mai poți păstra {1} și dărui pe loc {2}.",
+      aboutRuleTitle: "Regula păstrării",
+      aboutMore: "Mai mult",
+      aboutLess: "Mai puțin",
+      aboutSettings: "SETĂRI",
+      aboutTrust: "ÎNCREDERE",
+      aboutTasteShort: "Seva învață din ce păstrezi și îți propune mai des tablouri pe gustul tău.",
+      tasteTitle: "Preferințele tale",
+      tasteIntro: "Seva învață, doar din tablourile pe care le păstrezi, ce fel de tablouri îți plac, și înclină încet compozițiile noi în direcția lor, fără să renunțe la surprize. Preferințele stau în telefonul tău și nu le vede nimeni.",
+      tasteYoung: "Încă nu se vede nimic: {1} tablouri păstrate. După cinci începe să conteze.",
+      tasteEven: "Din {1} tablouri păstrate, preferințele tale sunt încă echilibrate: îți plac de toate.",
+      tasteLikes: "Din {1} tablouri păstrate, se vede că îți plac: {2}.",
+      tasteDark: "paletele întunecate",
+      tasteLight: "paletele luminoase",
+      tasteWarm: "culorile calde",
+      tasteCool: "culorile reci",
+      tastePair: "compozițiile din două familii",
+      tasteSolo: "compozițiile dintr-o singură familie",
+      tasteReset: "Uită preferințele",
+      tasteResetAsk: "Preferințele învățate până acum se șterg și Seva pornește din nou de la zero. Colecția rămâne neatinsă.",
+      signTitle: "Semnătura",
+      signChange: "Schimbă",
+      signNow: "Te semnezi: {1}",
+      signNone: "Tablourile tale nu poartă încă un nume.",
+      signNote: "Numele nou apare pe tablourile de acum încolo. Cele de până acum își păstrează semnătura cu care s-au născut.",
+      exportCollection: "Exportă colecția",
+      importCollection: "Importă colecția",
+      exportSubject: "Colecția mea Seva",
+      exportFailed: "Nu am putut pregăti fișierul.",
+      importDone: "Au intrat {1} tablouri noi în colecție.",
+      importBad: "Fișierul nu pare o colecție Seva.",
+      aboutPrivacyTitle: "Confidențialitate",
+      aboutPolicyLink: "Politica de confidențialitate",
+      aboutContact: "Contact:",
+      aboutHowNote: "Fără cont, fără permisiuni.",
+      aboutRule: "Poți încerca oricâte imagini vrei, gratuit, mereu. Păstrezi cinci tablouri pe zi: alegerea e ceea ce face colecția a ta. Alte cinci pe zi le poți dărui pe loc, imediat după Păstrează, fără să ocupe un loc în colecție. Primirea și dăruirea din colecție sunt mereu libere. Tablourile sunt la fel de frumoase pentru toți.",
+      aboutMoveTitle: "Colecția la adăpost",
+      aboutMoveShort: "Aici colecția stă în memoria browserului, nu într-un cont. Exportă din când în când o copie, ca fișier.",
+      aboutMove: "Colecția e un fișier mic de text (parametri, nu imagini). Aici ea stă în memoria browserului de pe acest telefon, iar browserul o poate șterge dacă pagina nu mai e deschisă o vreme. Adaugă pagina pe ecranul principal și exportă din când în când colecția: fișierul poate fi importat oricând înapoi, aici sau în aplicația Seva de pe alt telefon. Importul adaugă doar ce lipsește.",
+      aboutPrivacy: "Pagina nu cere nicio permisiune și nu are cont. Numele tău, colecția și preferințele învățate stau în memoria browserului, pe telefonul tău, și nu pleacă nicăieri. Colecția nu păstrează imagini, ci parametrii din care fiecare tablou renaște identic.",
+      aboutVersion: "Varianta din browser",
+      fam: ["ramurile", "bulele", "panglicile", "constelațiile", "mozaicurile", "cuburile"],
+      reg: ["", "culorile neon", "pastelurile", "tablourile într-o singură cerneală", "culorile care se ceartă"],
       gift: "Dăruiește", giftLang: "r", gifted: "Dăruit", givenTab: "Dăruite", giftFailed: "Nu am putut pregăti darul.", linkCopied: "Linkul darului a fost copiat.",
       giftAsk: "Tabloul va pleca din colecția ta și va rămâne doar amintirea lui. Pleacă într-un plic închis; cine îl primește îl deschide și, dacă are Seva, îl adaugă în colecția lui.\n\nÎn WhatsApp, așteaptă o clipă să apară plicul deasupra mesajului, apoi trimite.",
       giftAskNow: "Tabloul pleacă într-un plic închis; cine îl primește îl deschide și, dacă are Seva, îl adaugă în colecția lui. La tine rămâne doar amintirea lui.\n\nÎn WhatsApp, așteaptă o clipă să apară plicul deasupra mesajului, apoi trimite.",
@@ -60,6 +135,74 @@
       limitTitle: "That's all for today", limitFree: "Today you kept five pieces and gave five more away on the spot. Tomorrow you can again; you can go on trying as many images as you like.",
       fullTitle: "Today's collection is full", fullText: "You have already kept five pieces today. You can give this one away.", fullDrop: "Let it go",
       collectorLater: "The collector subscription, which lets you keep and give without limit, will come with the Seva app for iPhone.",
+      about: "About",
+      aboutTitle: "About Seva",
+      aboutTagline: "A living postcard.",
+      aboutShortTag: "IN SHORT",
+      aboutHowTitle: "How it works",
+      aboutStep1: "You draw one or more shapes with your finger.",
+      aboutStep2: "You tap Compose and a unique piece grows from the gesture. Not for you? Another piece.",
+      aboutStep3: "You keep it in your collection or give it away through a link.",
+      aboutGestureTitle: "The gesture",
+      aboutGestureShort: "The gesture is not copied: the piece grows from its direction, reach and temperament. The same gesture can give another piece.",
+      aboutWhat: "A living postcard. You draw one or more shapes with your finger, and a unique piece grows from them. No image ever repeats, because no gesture and no moment ever repeats.",
+      aboutGesture: "Your gesture is not drawn as you made it: it is reduced to direction, span and temperament, and from it a composition grows in one of six families: branches, bubbles, ribbons, constellation, mosaic or cubes, sometimes two together. How much and where you draw decides its size, place and richness. The phone picks the colors, from anywhere on the color wheel: most often in harmony, sometimes in pastel, in neon, in a single ink or, rarely, ugly on purpose. The piece is signed with your name and the moment you made it.",
+      aboutGiftTitle: "Gifts",
+      aboutGiftB1: "The piece leaves in a sealed envelope, through a link.",
+      aboutGiftB2: "You can write a thought on the back, once.",
+      aboutGiftB3: "Top secret: it is read once, then it burns.",
+      aboutGiftB4: "For an occasion: a birthday or Christmas, in a festive envelope.",
+      aboutGift: "A piece can be given: it leaves your collection and only its memory remains. It travels in a sealed envelope, in its own colors, so it stays a surprise; whoever receives it opens it in Seva and adds it to their collection, with your name on it. When you give it you can write a thought on the back: the piece turns over with a tap. The thought can be marked top secret; what happens then, you find out when you receive one. You can also say the gift is for a birthday or, around the holidays, for Christmas: it then arrives in a festive envelope, opens with its own celebration and carries its postmark on the back. A received piece can be given onward. Receiving and giving are always free.",
+      aboutRarityTitle: "Rare pieces",
+      aboutRarityB1: "Rarity shows only when you tap Keep.",
+      aboutRarityB2: "Ten chances a day, the same for everyone.",
+      aboutRarityB3: "Your first ten pieces bring you one of each tier.",
+      aboutRarity: "When you tap Keep, some pieces turn out to be rare and receive their frame and mark: Rare piece, in a wooden frame in the colours of the picture (20 in 100), Collector's piece, in a carved wooden frame (6 in 100), and Golden Seva, in a gilded frame (2 in 100). Luck is tried at most ten times a day, the same for everyone: the first ten pieces you keep or give on the spot in a day can be rare, the following ones are plain until the next day. The first ten pieces you keep bring you one of each, so you get to know them. Rarity belongs to the piece: it cannot be chosen, and a gifted piece leaves with it.",
+      aboutOdds: "{1} in 100",
+      aboutLuck: "Chances at a rare piece left today: {1} of {2}.",
+      aboutStatusFree: "Today you can still keep {1} and give {2} on the spot.",
+      aboutRuleTitle: "The keeping rule",
+      aboutMore: "More",
+      aboutLess: "Less",
+      aboutSettings: "SETTINGS",
+      aboutTrust: "TRUST",
+      aboutTasteShort: "Seva learns from what you keep and offers pieces to your taste more often.",
+      tasteTitle: "What you like",
+      tasteIntro: "Seva learns, only from the pieces you keep, what kind of pieces you like, and slowly leans new compositions their way without giving up surprises. What it learns stays on your phone and nobody sees it.",
+      tasteYoung: "Nothing to see yet: {1} pieces kept. It starts to matter after five.",
+      tasteEven: "From {1} pieces kept, what you like is still even: a bit of everything.",
+      tasteLikes: "From {1} pieces kept, it shows that you like: {2}.",
+      tasteDark: "dark palettes",
+      tasteLight: "light palettes",
+      tasteWarm: "warm colors",
+      tasteCool: "cool colors",
+      tastePair: "compositions of two families",
+      tasteSolo: "compositions of a single family",
+      tasteReset: "Forget what I like",
+      tasteResetAsk: "What Seva has learned so far is erased and it starts again from scratch. Your collection is untouched.",
+      signTitle: "Signature",
+      signChange: "Change",
+      signNow: "You sign as: {1}",
+      signNone: "Your pieces do not carry a name yet.",
+      signNote: "The new name appears on the pieces you make from now on. Earlier pieces keep the signature they were born with.",
+      exportCollection: "Export collection",
+      importCollection: "Import collection",
+      exportSubject: "My Seva collection",
+      exportFailed: "Could not prepare the file.",
+      importDone: "{1} new pieces joined your collection.",
+      importBad: "This file does not look like a Seva collection.",
+      aboutPrivacyTitle: "Privacy",
+      aboutPolicyLink: "Privacy policy",
+      aboutContact: "Contact:",
+      aboutHowNote: "No account, no permissions.",
+      aboutRule: "You can try as many images as you like, free, always. You keep five pieces a day: choosing is what makes the collection yours. Five more a day can be given on the spot, right after Keep, without taking a place in the collection. Receiving and giving from the collection are always free. The pieces are just as beautiful for everyone.",
+      aboutMoveTitle: "Keeping your collection safe",
+      aboutMoveShort: "Here your collection lives in the browser's memory, not in an account. Export a copy now and then, as a file.",
+      aboutMove: "The collection is a small text file (parameters, not images). Here it lives in this phone's browser memory, and the browser may clear it if the page is not opened for a while. Add the page to your Home Screen and export the collection now and then: the file can be imported back at any time, here or in the Seva app on another phone. Import only adds what is missing.",
+      aboutPrivacy: "This page asks for no permission and has no account. Your name, your collection and the learned preferences stay in the browser's memory, on your phone, and go nowhere. The collection keeps no images, only the parameters from which each piece is reborn identically.",
+      aboutVersion: "Browser version",
+      fam: ["branches", "bubbles", "ribbons", "constellations", "mosaics", "cubes"],
+      reg: ["", "neon colors", "pastels", "single-ink pieces", "colors that clash"],
       gift: "Give", giftLang: "e", gifted: "Given", givenTab: "Given", giftFailed: "Could not prepare the gift.", linkCopied: "The gift link has been copied.",
       giftAsk: "The piece will leave your collection and only its memory will remain. It travels in a sealed envelope; whoever receives it opens it and, if they have Seva, adds it to their collection.\n\nIn WhatsApp, wait a moment for the envelope to appear above the message, then send.",
       giftAskNow: "The piece travels in a sealed envelope; whoever receives it opens it and, if they have Seva, adds it to their collection. Only its memory stays with you.\n\nIn WhatsApp, wait a moment for the envelope to appear above the message, then send.",
@@ -216,7 +359,106 @@
       /** Tabloul dezvăluit care își așteaptă darul (colecția zilei era plină): ținut minte, ca o ieșire din pagină să nu-l piardă. */
       pending: function () { try { var s = get("seva.pending"); return s ? unpack(JSON.parse(s)) : null; } catch (e) { return null; } },
       setPending: function (p) { set("seva.pending", p ? JSON.stringify(pack(p)) : ""); },
+      /** Toate tablourile, păstrate și dăruite (pentru export). */
+      all: function () { return load().slice(); },
+      setAuthorId: function (id) { set("seva.aid", String(id)); },
+      /** Importul: adaugă ce lipsește; nu dublează, nu șterge nimic. Întoarce câte tablouri au intrat (Store.importJson). */
+      addMissing: function (list) {
+        load();
+        var n = 0;
+        list.forEach(function (p) { if (pieces.some(function (x) { return x.id === p.id; })) return; pieces.push(p); n++; });
+        pieces.sort(function (a, b) { return b.createdAt - a.createdAt; });
+        save();
+        return n;
+      },
       remove: function (id) { load(); pieces = pieces.filter(function (x) { return x.id !== id; }); save(); }
+    };
+  })();
+
+  // ================================================================ preferințele (Taste.kt)
+  //
+  // Se învață doar din tablourile păstrate: fiecare Păstrează apropie puțin preferințele de trăsăturile tabloului (familie,
+  // registru de culoare, fundal întunecat sau luminos, cald sau rece, cu sau fără a doua familie). Stau pe telefon.
+  // La fiecare tablou nou se încearcă în tăcere câteva semințe și se ia cea mai apropiată de preferințe, cu o parte de
+  // explorare, ca să nu se închidă. Tabloul rămâne unul obișnuit, cu sămânța și gestul lui; oricine îl reface identic.
+
+  var Taste = (function () {
+    var f = Math.fround;
+    var RATE = f(0.15), EXPLORE = f(0.3), WARMUP = 5;
+    var NOVICE = 10;      // primele tablouri ale unui om nou nu vin din registrul brut
+    var FAMILIES = 5, DARK = 5, WARM = 6, PAIR = 7, CUBES = 9, REGISTER = 10, SIZE = REGISTER + Seva.REGISTERS;
+    var SHARE = [0.52, 0.15, 0.15, 0.12, 0.06];     // Palettes.REGISTER_SHARE: cât apare fiecare registru de la sine
+    function neutral(i) { return i < FAMILIES || i === CUBES ? f(1 / 6) : i >= REGISTER ? f(SHARE[i - REGISTER]) : 0.5; }
+    function int(k) { return parseInt(Store.get("seva." + k) || "0", 10) || 0; }
+    function load() {
+      var out = [], i;
+      for (i = 0; i < SIZE; i++) out.push(neutral(i));
+      var s = Store.get("seva.taste");
+      if (s) {
+        var parts = s.split(",");
+        for (i = 0; i < Math.min(SIZE, parts.length); i++) { var v = parseFloat(parts[i]); if (isFinite(v)) out[i] = f(Math.max(0, Math.min(1, v))); }
+      }
+      return out;
+    }
+    function count() { return int("taste_n"); }
+    function save(t, n) { Store.set("seva.taste", t.map(function (v) { return v.toFixed(4); }).join(",")); Store.set("seva.taste_n", String(n)); }
+    /** Cât de departe e un tablou de preferințe; mai mic e mai aproape. */
+    function distance(t, fe) { var d = 0; for (var i = 0; i < SIZE; i++) d = f(d + Math.abs(f(fe[i] - t[i]))); return d; }
+    /** Trăsăturile hârtiei goale a unei semințe: gestul încă nu există, lumina și bateria nu se știu aici. */
+    function ofSeed(seed) { return Seva.features(Seva.paramsFromCase({ strokes: [], nervous: 0, slow: 0, light: 255, battery: 255, seed: seed, gen: Seva.GEN })); }
+    return {
+      WARMUP: WARMUP,
+      load: load, count: count,
+      reset: function () { Store.set("seva.taste", ""); Store.set("seva.taste_n", "0"); },
+      /** La Păstrează: preferințele se apropie puțin de tabloul păstrat. */
+      learn: function (piece) {
+        var fe = Seva.features(Seva.paramsFromPiece(piece, lang)), t = load();
+        for (var i = 0; i < SIZE; i++) t[i] = f(t[i] + f(f(fe[i] - t[i]) * RATE));
+        save(t, count() + 1);
+      },
+      /**
+       * Alege sămânța unui tablou nou: dintre câteva candidate, cea mai apropiată de preferințe, cu explorare.
+       * Până se adună câteva tablouri păstrate, preferințele sunt neutre și sămânța e cea a momentului.
+       */
+      chooseSeed: function (now) {
+        var composedN = int("composed_n");
+        Store.set("seva.composed_n", String(composedN + 1));
+        var novice = composedN < NOVICE, brut = REGISTER + Seva.BRUT, i;
+        var candidate = function (k) { return now + BigInt(k) * 7919n; };
+        var n = count(), rnd = new Seva.Random(now);
+        if (n < WARMUP || rnd.nextFloat() < EXPLORE) {
+          // fără preferințe: sămânța momentului; pentru un om nou, prima care nu e din registrul brut
+          if (!novice) return now;
+          for (i = 0; i < 8; i++) if (ofSeed(candidate(i))[brut] < 0.5) return candidate(i);
+          return now;
+        }
+        var t = load(), best = now, bestD = Infinity;
+        for (i = 0; i < 8; i++) {
+          var fe = ofSeed(candidate(i));
+          if (novice && fe[brut] > 0.5) continue;
+          var d = distance(t, fe);
+          if (d < bestD) { bestD = d; best = candidate(i); }
+        }
+        return best;
+      },
+      /** Ce a învățat, în cuvinte. */
+      describe: function () {
+        var n = count();
+        if (n < WARMUP) return fmt(T.tasteYoung, n);
+        var t = load(), parts = [], i;
+        // familia: cea mai iubită, dacă iese vizibil din rând
+        var fam = 0, famIdx = [0, 1, 2, 3, 4, CUBES];
+        famIdx.forEach(function (k) { if (t[k] > t[fam]) fam = k; });
+        if (t[fam] > f(0.30)) parts.push(T.fam[fam === CUBES ? 5 : fam]);
+        // registrul: cel care a crescut cel mai mult peste cât apare de la sine
+        var reg = 0, over = function (k) { return f(t[REGISTER + k] - f(SHARE[k])); };
+        for (i = 1; i < Seva.REGISTERS; i++) if (over(i) > over(reg)) reg = i;
+        if (reg !== Seva.ARMONIE && over(reg) > f(0.12)) parts.push(T.reg[reg]);
+        if (t[DARK] > f(0.62)) parts.push(T.tasteDark); else if (t[DARK] < f(0.38)) parts.push(T.tasteLight);
+        if (t[WARM] > f(0.62)) parts.push(T.tasteWarm); else if (t[WARM] < f(0.38)) parts.push(T.tasteCool);
+        if (t[PAIR] > f(0.6)) parts.push(T.tastePair); else if (t[PAIR] < f(0.25)) parts.push(T.tasteSolo);
+        return parts.length === 0 ? fmt(T.tasteEven, n) : fmt(T.tasteLikes, n, parts.join(", "));
+      }
     };
   })();
 
@@ -328,7 +570,7 @@
     return new Promise(function (resolve) {
       $("m-title").textContent = o.title || ""; $("m-title").hidden = !o.title;
       $("m-text").textContent = o.text || ""; $("m-text").hidden = !o.text;
-      mInput.hidden = !o.input; mInput.value = ""; mInput.placeholder = o.input || "";
+      mInput.hidden = !o.input; mInput.value = o.value || ""; mInput.placeholder = o.input || "";
       mOk.textContent = o.ok; mCancel.textContent = o.cancel || ""; mCancel.hidden = !o.cancel;
       $("m-gift").hidden = !o.gift;
       mSync = o.sync || null;
@@ -435,13 +677,6 @@
   btn.clear.textContent = T.clear; btn.compose.textContent = T.compose; btn.keep.textContent = T.keep;
   btn.another.textContent = T.another; btn.again.textContent = T.again; btn.backBoard.textContent = T.backToBoard; btn.give.textContent = T.gift;
   $("to-collection").textContent = T.collection;
-  // doar în pagina de probă: atingerea numărului probei face tablourile rare să apară des, ca efectele lor să poată fi văzute
-  function paintBuild() { $("build").textContent = BUILD + (Rarity.often() ? " · " + T.often : ""); }
-  $("build").addEventListener("click", function () {
-    Rarity.setOften(!Rarity.often());
-    paintBuild();
-    if (!composed && !locked && strokes.length === 0 && !current) { seed = newSeed(); repaint(); }
-  });
 
   var strokes = [];            // formele desenate: { points: [{x, y}], times: [ms] }, în coordonatele cărții
   var current = null;          // forma care se desenează acum
@@ -458,12 +693,12 @@
   var paper = null;            // cartea desenată: hârtia goală sau tabloul
   var queued = false;
 
-  /** Sămânța momentului, cu treapta pe care o poartă (ascunsă până la Păstrează). Gustul vine mai târziu. */
+  /** Sămânța momentului, înclinată de preferințe, cu treapta pe care o poartă (ascunsă până la Păstrează). */
   function newSeed() {
     var s = BigInt(Date.now());
     if (typeof lastStamp !== "undefined" && s <= lastStamp) s = lastStamp + 1n;
     lastStamp = s;
-    return Rarity.pick(s);
+    return Rarity.pick(Taste.chooseSeed(s));
   }
 
   function css(color, alpha) {
@@ -669,6 +904,7 @@
     if (canKeep) { Store.add(piece); Plan.recordKeep(); }
     else { Plan.recordGift(); Store.setPending(piece); }
     loose = !canKeep;
+    Taste.learn(piece);
     Rarity.onKeep(tier);
     if (tier === 0) { locked = true; state(); repaint(); }
     else reveal(tier, T.tiers[tier], tier === 3 ? T.goldSub : "", function () { state(); invalidate(); });
@@ -1518,6 +1754,323 @@
     requestAnimationFrame(frame);
   }
 
+  // ================================================================ Despre (AboutActivity.kt)
+  //
+  // Aceleași rubrici ca în aplicația de Android: cum funcționează, gestul, darurile, tablourile rare, regula păstrării,
+  // apoi setările și încrederea. În pagina din browser nu există abonament (colecționarii vin odată cu aplicația din
+  // App Store), nici sunete deocamdată; textele spun doar ce e adevărat aici.
+
+  var aboutBox = $("about"), aboutStatus = null, aboutSign = null, aboutTaste = null;
+  $("to-about").textContent = T.about;
+  $("to-about").addEventListener("click", function () { go("about"); });
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined && text !== null) e.textContent = text;
+    return e;
+  }
+  /** Semnul unei rubrici: un cerc în culoarea ei, cu un desen mic înăuntru (Emblem din aplicație). */
+  var MARKS = {
+    gesture: '<path d="M27 64 Q38 18 50 50 Q62 82 74 36" fill="none" stroke="currentColor" stroke-width="7.5" stroke-linecap="round"/>',
+    gift: '<path d="M26 34 H74 V68 H26 Z M26 35 L50 54 L74 35" fill="none" stroke="currentColor" stroke-width="6" stroke-linejoin="round"/>',
+    diamond: '<path d="M50 25 L72 50 L50 75 L28 50 Z" fill="currentColor"/>',
+    leaf: '<path d="M50 22 Q84 46 50 78 Q16 46 50 22 Z" fill="currentColor"/>',
+    flower: '<circle cx="50" cy="34" r="10.5" fill="currentColor"/><circle cx="65.2" cy="45.1" r="10.5" fill="currentColor"/><circle cx="59.4" cy="62.9" r="10.5" fill="currentColor"/>' +
+      '<circle cx="40.6" cy="62.9" r="10.5" fill="currentColor"/><circle cx="34.8" cy="45.1" r="10.5" fill="currentColor"/><circle cx="50" cy="50" r="6" fill="#1C1B22"/>',
+    drop: '<path d="M50 20 Q78 56 67 64 Q50 86 33 64 Q22 56 50 20 Z" fill="currentColor"/>'
+  };
+  function emblem(kind, tint) {
+    var e = el("span", "emblem");
+    e.style.color = tint;
+    e.innerHTML = '<svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="50" fill="currentColor" opacity=".22"/>' + MARKS[kind] + "</svg>";
+    return e;
+  }
+  /** Un carton: key = scos în evidență, quiet = șters (setări), gold = rubrica tablourilor rare. */
+  function carton(kind) { return el("div", "card" + (kind ? " " + kind : "")); }
+  function head(title, mark, tag) {
+    var h = el("div", "head");
+    if (mark) h.appendChild(mark);
+    h.appendChild(el("h3", null, title));
+    if (tag) h.appendChild(el("span", "tag", tag));
+    return h;
+  }
+  /** Explicația întreagă a rubricii, strânsă sub „Mai mult”. */
+  function more(box, full) {
+    var body = el("p", "full", full), toggle = el("button", "more", T.aboutMore);
+    toggle.type = "button"; body.hidden = true;
+    toggle.addEventListener("click", function () { body.hidden = !body.hidden; toggle.textContent = body.hidden ? T.aboutMore : T.aboutLess; });
+    box.appendChild(toggle); box.appendChild(body);
+  }
+  function chip(label, on) { var b = el("button", "chip" + (on ? " on" : ""), label); b.type = "button"; return b; }
+
+  // ---- mutarea colecției: același fișier .seva ca în aplicația de Android (Store.exportJson, Store.importJson)
+
+  var f32 = Math.fround;
+  /** Un tablou, cum îl scrie aplicația de Android (Piece.toJson): temperamentul ca fracții, semințele și semnele ca numere întregi. */
+  function toAndroid(p) {
+    var o = { id: p.id, seed: String(p.seed), createdAt: p.createdAt, author: p.author || "" };
+    var noted = !!(p.note && p.note.trim());
+    if (p.from) o.from = p.from;
+    if (p.giftedAt) o.giftedAt = p.giftedAt;
+    if (p.aid && p.aid !== "0") o.aid = String(p.aid);
+    if (p.fromId && p.fromId !== "0") o.fid = String(p.fromId);
+    if (noted) o.note = p.note;
+    if (noted || p.burned || p.occasion) { o.noteBy = p.noteBy || ""; o.noteAt = p.noteAt || 0; }
+    if (p.occasion) o.occasion = p.occasion;
+    if (p.secret) o.secret = true;
+    if (p.burned) o.burned = true;
+    if (p.gen) o.gen = p.gen;
+    o.nervous = f32(p.nervous / 255); o.slow = f32(p.slow / 255);
+    if (p.light !== 255) o.light = f32(p.light / 254);
+    if (p.battery !== 255) o.battery = f32(p.battery / 254);
+    o.strokes = p.strokes.map(function (s) { var flat = []; s.forEach(function (q) { flat.push(q[0], q[1]); }); return flat; });
+    return o;
+  }
+  /** Un tablou din fișier (Piece.fromJson), adus la forma din pagină: aceiași întregi care ar fi călătorit printr-un link. */
+  function fromAndroid(j) {
+    if (!j || typeof j.id !== "string" || j.seed === undefined || typeof j.createdAt !== "number" || !Array.isArray(j.strokes)) throw new Error("tablou stricat");
+    var grid = function (v) { return Math.floor(f32(f32(Math.max(0, Math.min(1, v))) * 65535) + 0.5); };
+    var steps = function (v, n) { return Math.max(0, Math.min(n, Math.trunc(f32(f32(v) * n)))); };
+    var sense = function (v) { return typeof v !== "number" || v < 0 ? 255 : steps(v, 254); };
+    var strokes = j.strokes.map(function (a) {
+      var s = [];
+      // versiunile vechi de test păstrau fracții; cele noi, întregi pe grila 0..65535
+      for (var i = 0; i + 1 < a.length; i += 2) s.push(a[i] <= 1 && a[i + 1] <= 1 ? [grid(a[i]), grid(a[i + 1])] : [Math.round(a[i]), Math.round(a[i + 1])]);
+      return s;
+    });
+    return { id: j.id, seed: BigInt(j.seed), createdAt: j.createdAt, author: typeof j.author === "string" ? j.author : "",
+      aid: j.aid === undefined ? "0" : String(j.aid), gen: j.gen | 0,
+      nervous: steps(typeof j.nervous === "number" ? j.nervous : 0.3, 255), slow: steps(typeof j.slow === "number" ? j.slow : 0.5, 255),
+      light: sense(j.light), battery: sense(j.battery), strokes: strokes,
+      from: typeof j.from === "string" ? j.from : null, fromId: j.fid === undefined ? "0" : String(j.fid), giftedAt: j.giftedAt || null,
+      note: typeof j.note === "string" ? j.note : null, noteBy: typeof j.noteBy === "string" ? j.noteBy : null, noteAt: j.noteAt || 0,
+      secret: !!j.secret, burned: !!j.burned, occasion: j.occasion | 0 };
+  }
+  var BIG = "seed|aid|fid|authorId";     // numere de 64 de biți: în fișier stau ca numere, în pagină ca text
+  function exportText() {
+    var aliases = {};
+    try { aliases = JSON.parse(Store.get("seva.aliases") || "{}") || {}; } catch (e) { aliases = {}; }
+    var int = function (k) { return parseInt(Store.get("seva." + k) || "0", 10) || 0; };
+    var o = { seva: 2, author: Store.author() || "", authorId: Store.authorId(), pieces: Store.all().map(toAndroid), aliases: aliases,
+      rarity: { n: int("rare_n"), g1: Store.get("seva.rare_got1") === "1", g2: Store.get("seva.rare_got2") === "1", g3: Store.get("seva.rare_got3") === "1", gd: int("rare_gd") } };
+    return JSON.stringify(o).replace(new RegExp('"(' + BIG + ')":"(-?\\d+)"', "g"), '"$1":$2');
+  }
+  /** Adaugă din fișier ce lipsește; nu dublează, nu șterge nimic. Întoarce câte tablouri au intrat, sau -1 dacă fișierul nu e o colecție. */
+  function importText(text) {
+    var o, list;
+    try {
+      o = JSON.parse(String(text).replace(new RegExp('"(' + BIG + ')":\\s*(-?\\d+)', "g"), '"$1":"$2"'));
+      if (!o || !Array.isArray(o.pieces)) return -1;
+      list = o.pieces.map(fromAndroid);
+    } catch (e) { return -1; }
+    var n = Store.addMissing(list);
+    // darul de bun venit și treptele deja primite vin și ele (Rarity.importJson)
+    var r = o.rarity, int = function (k) { return parseInt(Store.get("seva." + k) || "0", 10) || 0; };
+    if (r && typeof r === "object") {
+      Store.set("seva.rare_n", String(Math.max(int("rare_n"), r.n | 0)));
+      for (var tier = 1; tier <= 3; tier++) if (r["g" + tier] === true) Store.set("seva.rare_got" + tier, "1");
+      Store.set("seva.rare_gd", String(Math.max(int("rare_gd"), r.gd | 0)));
+    }
+    // numele date folderelor în aplicația de Android se țin minte, ca un export de aici să le ducă mai departe
+    if (o.aliases && typeof o.aliases === "object") {
+      var have = {};
+      try { have = JSON.parse(Store.get("seva.aliases") || "{}") || {}; } catch (e) { have = {}; }
+      Object.keys(o.aliases).forEach(function (k) { if (!(k in have)) have[k] = String(o.aliases[k]); });
+      Store.set("seva.aliases", JSON.stringify(have));
+    }
+    // exportul aduce și numele și semnul; dacă e același om (nume lipsă sau identic), semnul vechi îl înlocuiește pe cel nou
+    var name = typeof o.author === "string" ? o.author : "", mine = (Store.author() || "").trim();
+    if ((mine === "" || mine.toLowerCase() === name.trim().toLowerCase()) && name.trim() !== "") {
+      if (mine === "") Store.setAuthor(name);
+      if (o.authorId !== undefined && String(o.authorId) !== "0") Store.setAuthorId(String(o.authorId));
+    }
+    return n;
+  }
+  /** Exportul: un fișier .seva (text), dat mai departe prin fereastra de partajare a telefonului sau descărcat. */
+  function exportCollection() {
+    try {
+      var d = new Date(), two = function (x) { return String(x).padStart(2, "0"); };
+      var name = "colectie-seva-" + d.getFullYear() + two(d.getMonth() + 1) + two(d.getDate()) + "-" + two(d.getHours()) + two(d.getMinutes()) + ".seva";
+      var text = exportText();
+      if (window.SevaTestExport) { window.SevaTestExport(name, text); return; }
+      var download = function () {
+        var a = document.createElement("a"), url = URL.createObjectURL(new Blob([text], { type: "application/octet-stream" }));
+        a.href = url; a.download = name; a.style.display = "none";
+        document.body.appendChild(a); a.click();
+        setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 4000);
+      };
+      var file = null;
+      try { file = new File([text], name, { type: "application/octet-stream" }); } catch (e) { file = null; }
+      if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+        navigator.share({ files: [file], title: T.exportSubject }).catch(function (e) { if (!e || e.name !== "AbortError") download(); });
+      } else download();
+    } catch (e) { toast(T.exportFailed); if (window.console) console.error(e); }
+  }
+  function importFile(file) {
+    if (!file) return;
+    var r = new FileReader();
+    r.onload = function () {
+      var n = importText(r.result);
+      toast(n < 0 ? T.importBad : fmt(T.importDone, n));
+      if (n >= 0) paintAbout();
+    };
+    r.onerror = function () { toast(T.importBad); };
+    r.readAsText(file);
+  }
+
+  // ---- pagina
+
+  function paintSign() {
+    var name = (Store.author() || "").trim();
+    aboutSign.textContent = name === "" ? T.signNone : fmt(T.signNow, name);
+  }
+  /** Ce se schimbă de la o deschidere la alta: câte mai poți păstra azi, semnătura, preferințele. */
+  function paintAbout() {
+    if (!aboutStatus) return;
+    aboutStatus.textContent = fmt(T.aboutStatusFree, Plan.leftToday(), Plan.giftsLeftToday()) + "\n" + fmt(T.aboutLuck, Rarity.ticketsLeft(), Rarity.TICKETS);
+    paintSign();
+    aboutTaste.textContent = Taste.describe();
+    paintBuild();
+  }
+  function buildAbout() {
+    var back = el("button", "pill flow", T.back), c, row, i;
+    back.type = "button";
+    back.addEventListener("click", function () { go("board"); });
+    aboutBox.appendChild(back);
+    aboutBox.appendChild(el("h1", null, T.aboutTitle));
+    aboutBox.appendChild(el("p", "tagline", T.aboutTagline));
+
+    // limba: două pastile
+    row = el("div", "chips");
+    [["ro", "Română"], ["en", "English"]].forEach(function (l) {
+      var b = chip(l[1], l[0] === lang);
+      b.addEventListener("click", function () { if (l[0] === lang) return; Store.set("seva.lang", l[0]); location.reload(); });
+      row.appendChild(b);
+    });
+    aboutBox.appendChild(row);
+
+    // 1. pe scurt
+    c = carton("key");
+    c.appendChild(head(T.aboutHowTitle, null, T.aboutShortTag));
+    [T.aboutStep1, T.aboutStep2, T.aboutStep3].forEach(function (text, k) {
+      var s = el("div", "step"); s.appendChild(el("span", "num", String(k + 1))); s.appendChild(el("p", null, text)); c.appendChild(s);
+    });
+    c.appendChild(el("p", "note", T.aboutHowNote));
+    aboutBox.appendChild(c);
+
+    // 2. gestul
+    c = carton();
+    c.appendChild(head(T.aboutGestureTitle, emblem("gesture", "#6FB8AC"), null));
+    c.appendChild(el("p", null, T.aboutGestureShort));
+    more(c, T.aboutWhat + "\n\n" + T.aboutGesture);
+    aboutBox.appendChild(c);
+
+    // 3. darurile
+    c = carton();
+    c.appendChild(head(T.aboutGiftTitle, emblem("gift", "#E08A7A"), null));
+    [T.aboutGiftB1, T.aboutGiftB2, T.aboutGiftB3, T.aboutGiftB4].forEach(function (text) { c.appendChild(el("p", "bullet rose", text)); });
+    more(c, T.aboutGift);
+    aboutBox.appendChild(c);
+
+    // 4. tablourile rare: cele trei trepte, fiecare cu semnul și șansa ei
+    c = carton("gold");
+    c.appendChild(head(T.aboutRarityTitle, emblem("diamond", "#E2AE45"), null));
+    [["leaf", "#8FCB9B", 20], ["flower", "#A592DC", 6], ["drop", "#E2AE45", 2]].forEach(function (t, k) {
+      var r = el("div", "tier" + (k === 2 ? " golden" : ""));
+      r.appendChild(emblem(t[0], t[1])); r.appendChild(el("span", "name", T.tiers[k + 1])); r.appendChild(el("span", "odds", fmt(T.aboutOdds, t[2])));
+      c.appendChild(r);
+    });
+    [T.aboutRarityB1, T.aboutRarityB2, T.aboutRarityB3].forEach(function (text) { c.appendChild(el("p", "bullet gold", text)); });
+    more(c, T.aboutRarity);
+    aboutBox.appendChild(c);
+
+    // 5. regula păstrării: ce se poate azi. Fără abonament aici.
+    c = carton("key");
+    c.appendChild(head(T.aboutRuleTitle, null, null));
+    aboutStatus = el("p", "status");
+    c.appendChild(aboutStatus);
+    more(c, T.aboutRule + "\n\n" + T.collectorLater);
+    aboutBox.appendChild(c);
+
+    // setările: mai șterse, sub ce contează
+    aboutBox.appendChild(el("p", "group", T.aboutSettings));
+
+    // semnătura: numele de pe tablourile noi; cele de până acum o păstrează pe cea cu care s-au născut
+    c = carton("quiet");
+    row = el("div", "head");
+    row.appendChild(el("h3", "small", T.signTitle));
+    var change = chip(T.signChange, false);
+    change.addEventListener("click", function () {
+      ask({ title: T.nameTitle, input: T.nameHint, value: Store.author() || "", ok: T.nameOk, cancel: T.cancel }).then(function (v) {
+        if (v === null || v === true) return;
+        Store.setAuthor(v); paintSign();
+      });
+    });
+    row.appendChild(change);
+    c.appendChild(row);
+    aboutSign = el("p");
+    c.appendChild(aboutSign);
+    c.appendChild(el("p", "note", T.signNote));
+    aboutBox.appendChild(c);
+
+    // preferințele
+    c = carton("quiet");
+    c.appendChild(el("h3", "small", T.tasteTitle));
+    c.appendChild(el("p", null, T.aboutTasteShort));
+    aboutTaste = el("p", "note");
+    c.appendChild(aboutTaste);
+    var forget = el("button", "link", T.tasteReset);
+    forget.type = "button";
+    forget.addEventListener("click", function () {
+      ask({ text: T.tasteResetAsk, ok: T.tasteReset, cancel: T.cancel }).then(function (v) { if (v === null) return; Taste.reset(); aboutTaste.textContent = Taste.describe(); });
+    });
+    c.appendChild(forget);
+    more(c, T.tasteIntro);
+    aboutBox.appendChild(c);
+
+    // colecția la adăpost: export și import
+    c = carton("quiet");
+    c.appendChild(el("h3", "small", T.aboutMoveTitle));
+    c.appendChild(el("p", null, T.aboutMoveShort));
+    row = el("div", "chips");
+    var exp = chip(T.exportCollection, true);
+    exp.addEventListener("click", exportCollection);
+    row.appendChild(exp);
+    // importul: un câmp de fișier adevărat, sub eticheta lui, ca telefonul să deschidă alegerea fișierului la atingere
+    var imp = el("label", "chip", T.importCollection), input = document.createElement("input");
+    input.type = "file"; input.id = "import-file"; input.className = "file";
+    input.addEventListener("change", function () { importFile(input.files && input.files[0]); input.value = ""; });
+    imp.appendChild(input);
+    row.appendChild(imp);
+    c.appendChild(row);
+    more(c, T.aboutMove);
+    aboutBox.appendChild(c);
+
+    // încrederea
+    aboutBox.appendChild(el("p", "group", T.aboutTrust));
+    c = carton("quiet");
+    c.appendChild(el("h3", "small", T.aboutPrivacyTitle));
+    c.appendChild(el("p", null, T.aboutPrivacy));
+    aboutBox.appendChild(c);
+    var policy = el("a", "link", T.aboutPolicyLink);
+    policy.href = "https://sevarao.com/politica.html"; policy.target = "_blank"; policy.rel = "noopener";
+    aboutBox.appendChild(policy);
+    aboutBox.appendChild(el("p", "note foot", T.aboutContact + " ionutrao@gmail.com"));
+    // doar în pagina de probă: atingerea acestui rând face tablourile rare să apară des
+    var build = el("p", "note foot dim");
+    build.id = "build";
+    aboutBox.appendChild(build);
+    build.addEventListener("click", function () {
+      Rarity.setOften(!Rarity.often());
+      paintBuild();
+      if (!composed && !locked && strokes.length === 0 && !current) { seed = newSeed(); repaint(); }
+    });
+  }
+  function paintBuild() { var b = $("build"); if (b) b.textContent = T.aboutVersion + " · " + BUILD + (Rarity.often() ? " · " + T.often : ""); }
+  buildAbout();
+  onShow.about = function () { aboutBox.scrollTop = 0; paintAbout(); };
+
   // ================================================================ pornirea
 
   // pagina nu se mișcă, nu se mărește și nu își arată meniurile sub deget; doar colecția se derulează
@@ -1556,10 +2109,12 @@
 
   // pentru probele din afara telefonului
   window.SevaApp = {
+    chooseSeed: function (now) { return String(Taste.chooseSeed(BigInt(now))); },
+    featuresOf: function (seed) { return Seva.features(Seva.paramsFromCase({ strokes: [], nervous: 0, slow: 0, light: 255, battery: 255, seed: seed, gen: Seva.GEN })); },
     state: function () {
       return { view: document.body.getAttribute("data-view"), strokes: strokes.length, composed: composed, locked: locked, piece: piece,
         card: card, seed: String(seed), author: Store.author(), kept: Store.list().length, given: Store.given().length, thumbs: Object.keys(thumbs).length,
-        loose: loose, keptToday: Plan.keptToday(), giftedToday: Plan.giftedToday(), pending: !!Store.pending(),
+        lang: lang, taste: Taste.load(), tasteN: Taste.count(), tasteSays: Taste.describe(), loose: loose, keptToday: Plan.keptToday(), giftedToday: Plan.giftedToday(), pending: !!Store.pending(),
         tier: Seva.tierOf(seed), revealing: rv ? rv.tier : 0, turned: turned, secret: secret ? (secret.fire ? "arde" : "numara") : null,
         viewing: shown[viewAt] ? { id: shown[viewAt].id, from: shown[viewAt].from, note: shown[viewAt].note, secret: shown[viewAt].secret, burned: shown[viewAt].burned, occasion: shown[viewAt].occasion } : null, ticketsLeft: Rarity.ticketsLeft(), often: Rarity.often() };
     }

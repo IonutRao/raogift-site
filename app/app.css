@@ -18,7 +18,6 @@ body[data-view="board"] #v-board, body[data-view="collection"] #v-collection, bo
 .top { flex:0 0 auto; height:52px; display:flex; align-items:center; justify-content:center; position:relative; padding:0 14px; }
 .brand { color:var(--cream); font-size:16px; letter-spacing:.32em; text-indent:.32em; opacity:.8; }
 .title { color:var(--cream); font-size:18px; letter-spacing:.03em; }
-#build { position:absolute; left:6px; top:0; height:52px; padding:0 10px; display:flex; align-items:center; color:#5E5C66; font-size:11px; touch-action:manipulation; }
 .pill {
   appearance:none; -webkit-appearance:none; font:inherit; font-size:15px; letter-spacing:.03em; line-height:1;
   position:absolute; top:8px; height:36px; padding:0 16px; border-radius:18px;
@@ -108,3 +107,53 @@ body[data-view="board"] #v-board, body[data-view="collection"] #v-collection, bo
 #toast { position:fixed; left:50%; bottom: calc(96px + env(safe-area-inset-bottom)); transform:translateX(-50%); z-index:30; max-width:86%;
          padding: 10px 18px; border-radius:20px; background:#2A2930; color:var(--cream); font-size:14.5px; line-height:1.35; text-align:center;
          box-shadow: 0 6px 22px rgba(0,0,0,.45); }
+
+/* despre: rubrici pe cartoane, ca în aplicația de Android (AboutActivity.kt) */
+body[data-view="about"] #v-about { display:flex; }
+#about { padding: 14px 16px 44px; text-align:left; }
+#about > .pill { margin-bottom:14px; }
+#about h1 { margin: 4px 0 0; color:var(--cream); font-weight:400; font-size:26px; }
+#about .tagline { margin: 4px 0 6px; color:#8A857C; font-size:14px; }
+.chips { display:flex; flex-wrap:wrap; gap:8px; padding: 8px 0 14px; }
+.card .chips { padding: 6px 0 2px; }
+.chip { appearance:none; -webkit-appearance:none; font:inherit; font-size:14px; line-height:1; display:inline-flex; align-items:center; height:34px; padding:0 16px;
+        border-radius:17px; border:0; background:#2A2930; color:#F2EFE6; position:relative; overflow:hidden; cursor:pointer; touch-action:manipulation; white-space:nowrap; }
+.chip.on { background:var(--cream); color:var(--ink); }
+.chip:active { opacity:.8; }
+.chip .file { position:absolute; left:0; top:0; width:1px; height:1px; opacity:0; pointer-events:none; }
+.card { margin: 0 0 12px; padding: 14px 16px; border-radius:18px; background:#1C1B22; border:1.2px solid #33313A; }
+.card.key { background:#22212A; border-color:var(--cream); }
+.card.gold { border-color:#6A5526; }
+.card.quiet { background:var(--bg); }
+.card p { margin: 6px 0; color:var(--pale); font-size:15px; line-height:1.4; white-space:pre-line; }
+.card .head { display:flex; align-items:center; padding-bottom:6px; }
+.card h3 { flex:1 1 auto; margin:0; color:var(--cream); font-weight:400; font-size:19px; }
+.card h3.small { font-size:17px; padding-bottom:4px; }
+.card .head h3.small { padding-bottom:0; }
+.tag { flex:0 0 auto; font-size:10.5px; letter-spacing:.14em; color:var(--ink); background:var(--cream); border-radius:20px; padding: 4px 9px 3px; }
+.emblem { flex:0 0 auto; width:28px; height:28px; margin-right:10px; display:block; }
+.emblem svg { display:block; width:100%; height:100%; }
+.step { display:flex; padding: 6px 0; }
+.step .num { flex:0 0 auto; width:26px; height:26px; margin-right:12px; border:1.2px solid var(--cream); border-radius:50%; color:var(--cream); font-size:14px;
+             display:flex; align-items:center; justify-content:center; }
+.step p { margin: 3px 0 0; color:#E4E1DA; }
+.card p.note { color:#8A857C; font-size:13.5px; }
+.card p.bullet { position:relative; margin:0; padding: 4px 0 4px 20px; }
+.bullet::before { content:""; position:absolute; left:2px; top:12px; width:6px; height:6px; border-radius:50%; opacity:.7; }
+.bullet.rose::before { background:#E08A7A; } .bullet.gold::before { background:#E2AE45; }
+.tier { display:flex; align-items:center; padding: 9px 0; border-top:1px solid #2A2831; }
+.head + .tier { border-top:0; }
+.tier .emblem { margin-right:12px; }
+.tier .name { flex:1 1 auto; color:var(--cream); font-size:16px; }
+.tier .odds { flex:0 0 auto; font-size:13px; color:var(--pale); border:1.2px solid #4A4850; border-radius:20px; padding: 4px 10px 3px; }
+.tier.golden .odds { color:#E2AE45; border-color:#E2AE45; }
+.more { appearance:none; -webkit-appearance:none; display:block; background:none; border:0; font:inherit; font-size:14px; color:#E2AE45; padding: 8px 16px 4px 0;
+        cursor:pointer; touch-action:manipulation; }
+.card p.full { font-size:14px; color:#A9ADB8; }
+.card p.status { color:var(--cream); font-size:14px; }
+.group { margin:0; padding: 16px 0 10px 4px; color:#8A857C; font-size:12px; letter-spacing:.16em; }
+.link { appearance:none; -webkit-appearance:none; display:block; background:none; border:0; font:inherit; font-size:14px; color:#F1C27D; padding: 8px 0 4px;
+        text-decoration:none; text-align:left; cursor:pointer; touch-action:manipulation; }
+#about > .link { padding: 8px 0 4px 4px; font-size:15px; }
+.foot { margin: 2px 0; padding-left:4px; color:#8A857C; font-size:13.5px; line-height:1.4; }
+.foot.dim { color:#6A6660; padding-bottom:10px; touch-action:manipulation; }

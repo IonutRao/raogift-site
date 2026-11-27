@@ -10,14 +10,14 @@
 <meta name="apple-mobile-web-app-title" content="Seva">
 <title>Seva</title>
 <!-- Seva pentru iPhone, în lucru: interiorul aplicației, făcut pe codul paginii de dar (../g/seva.js). Pagină de probă, nelegată de nicăieri. -->
-<link rel="stylesheet" href="app.css?v=6">
+<link rel="stylesheet" href="app.css?v=7">
 </head>
 <body data-view="board">
 
 <!-- planșa de desen -->
 <section id="v-board" class="view">
   <header class="top">
-    <span id="build"></span>
+    <button id="to-about" class="pill left" type="button"></button>
     <span class="brand">SEVA</span>
     <button id="to-collection" class="pill right" type="button"></button>
   </header>
@@ -49,6 +49,11 @@
     <p id="col-empty" class="empty" hidden></p>
     <div id="grid"></div>
   </div>
+</section>
+
+<!-- despre: cum funcționează, setările, încrederea -->
+<section id="v-about" class="view">
+  <div id="about" class="scroll"></div>
 </section>
 
 <!-- un tablou din colecție, mare -->
@@ -90,7 +95,7 @@
 
 <div id="toast" hidden></div>
 
-<script src="../g/seva.js?v=9"></script>
-<script src="app.js?v=6"></script>
+<script src="../g/seva.js?v=10"></script>
+<script src="app.js?v=7"></script>
 </body>
 </html>
