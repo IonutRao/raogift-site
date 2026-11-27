@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="Seva">
 <title>Seva</title>
 <!-- Seva pentru iPhone, în lucru: interiorul aplicației, făcut pe codul paginii de dar (../g/seva.js). Pagină de probă, nelegată de nicăieri. -->
-<link rel="stylesheet" href="app.css?v=3">
+<link rel="stylesheet" href="app.css?v=4">
 </head>
 <body data-view="board">
 
@@ -30,16 +30,20 @@
       <button id="keep" class="btn third" type="button" hidden></button>
       <button id="another" class="btn soft third" type="button" hidden></button>
       <button id="again" class="btn soft third" type="button" hidden></button>
-      <button id="back-board" class="btn" type="button" hidden></button>
+      <button id="back-board" class="btn third" type="button" hidden></button>
+      <button id="give" class="btn third" type="button" hidden></button>
     </div>
   </footer>
 </section>
 
 <!-- colecția -->
 <section id="v-collection" class="view">
-  <header class="top">
-    <button id="col-back" class="pill left" type="button"></button>
-    <span id="col-title" class="title"></span>
+  <header class="top col">
+    <button id="col-back" class="pill flow" type="button"></button>
+    <div class="tabs">
+      <button id="tab-kept" class="tab on" type="button"></button>
+      <button id="tab-given" class="tab" type="button"></button>
+    </div>
   </header>
   <div id="grid-wrap" class="scroll">
     <p id="col-empty" class="empty" hidden></p>
@@ -54,6 +58,7 @@
     <p class="hint none">&nbsp;</p>
     <div class="buttons">
       <button id="view-back" class="btn soft third" type="button"></button>
+      <button id="view-give" class="btn third" type="button"></button>
       <button id="view-delete" class="btn soft third" type="button"></button>
     </div>
   </footer>
@@ -61,10 +66,17 @@
 
 <!-- fereastra de întrebat -->
 <div id="modal" hidden>
-  <div class="sheet" role="dialog" aria-modal="true">
+  <div class="sheet scroll" role="dialog" aria-modal="true">
     <h2 id="m-title"></h2>
     <p id="m-text"></p>
     <input id="m-input" type="text" autocomplete="off" autocapitalize="words" autocorrect="off" spellcheck="false" maxlength="40" hidden>
+    <!-- spatele cărții poștale, la dăruit: un gând, top secret, ocazia -->
+    <div id="m-gift" hidden>
+      <textarea id="g-note" rows="2" maxlength="240" autocapitalize="sentences"></textarea>
+      <label class="check"><input id="g-secret" type="checkbox"><span></span><b id="g-secret-t"></b></label>
+      <label class="check"><input id="g-birthday" type="checkbox"><span></span><b id="g-birthday-t"></b></label>
+      <label class="check" id="g-christmas-row"><input id="g-christmas" type="checkbox"><span></span><b id="g-christmas-t"></b></label>
+    </div>
     <div class="m-buttons">
       <button id="m-cancel" class="btn soft" type="button" hidden></button>
       <button id="m-ok" class="btn" type="button"></button>
@@ -72,7 +84,9 @@
   </div>
 </div>
 
-<script src="../g/seva.js?v=8"></script>
-<script src="app.js?v=3"></script>
+<div id="toast" hidden></div>
+
+<script src="../g/seva.js?v=9"></script>
+<script src="app.js?v=4"></script>
 </body>
 </html>

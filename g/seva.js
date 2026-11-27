@@ -2075,10 +2075,12 @@
       const nervous = u8(), slow = u8();
       let light = 255, battery = 255;
       if (version >= 2) { light = u8(); battery = u8(); }
-      if (version >= 3) { i64(); i64(); }                       // semnele instalărilor: pagina nu are ce face cu ele
+      // semnele instalărilor (cine l-a făcut, cine l-a trimis): pagina de dar nu are ce face cu ele, aplicația da
+      let aid = 0n, fromId = 0n, sender = "";
+      if (version >= 3) { aid = i64(); fromId = i64(); }
       const author = str(u8());
       let from = author;
-      if (version >= 3) { const who = str(u8()); if (!blank(who)) from = who; }
+      if (version >= 3) { sender = str(u8()); if (!blank(sender)) from = sender; }
       let note = null, noteBy = null, noteAt = 0, by = "";
       // de la versiunea 7, generația și semnele vin înaintea spatelui, iar spatele doar dacă există
       let gen = 0, flags = 0;
@@ -2120,8 +2122,83 @@
         strokes.push(pts);
       }
       return { version, seed, createdAt, nervous, slow, light, battery, author, from: blank(from) ? null : from,
-        note, noteBy, noteAt, gen, secret, burned, occasion, strokes, newer: gen > GEN };
+        note, noteBy, noteAt, gen, secret, burned, occasion, strokes, newer: gen > GEN,
+        aid: String(aid), fromId: String(fromId), sender, by };
     } catch (e) { return null; }
+  }
+
+  /**
+   * Codul unui dar, ca Codec.encode din aplicație (versiunea 7): același tablou dă același cod, octet cu octet.
+   * p: tabloul cu întregii din cod: { seed, createdAt, nervous, slow, light, battery (0..255), aid, author, gen,
+   *    note, noteBy, noteAt, secret, burned, occasion, strokes: [[[x, y]...]...] pe grila 0..65535 }.
+   * sender, senderId: numele și semnul celui care dăruiește.
+   */
+  function encode(p, sender, senderId) {
+    const out = [];
+    const u8 = (v) => { out.push(v & 0xFF); };
+    const u16 = (v) => { u8(v >> 8); u8(v); };
+    const i64 = (v) => { const x = BigInt.asUintN(64, BigInt(v || 0)); for (let i = 7; i >= 0; i--) out.push(Number((x >> BigInt(i * 8)) & 0xFFn)); };
+    const utf8 = (s, max) => { const b = Array.from(new TextEncoder().encode(s || "")); return max ? b.slice(0, max) : b; };
+    const bytes = (b) => { for (let i = 0; i < b.length; i++) out.push(b[i]); };
+    // un număr mic, cu semn, pe cât mai puțini octeți: zigzag, apoi câte 7 biți, cu bitul de sus ca „mai urmează”
+    const zig = (v) => { let z = (v << 1) ^ (v >> 31); while ((z & ~0x7F) !== 0) { u8((z & 0x7F) | 0x80); z >>>= 7; } u8(z); };
+    const step = (v, top) => coerce(trunc(f(f(v / top) * top)), 0, top);     // (fracția * 255f).toInt(), cum scrie aplicația
+
+    u8(CODE_VERSION);
+    i64(p.seed); i64(p.createdAt);
+    u8(step(p.nervous, 255)); u8(step(p.slow, 255));
+    u8(p.light === 255 || p.light < 0 ? 255 : step(p.light, 254)); u8(p.battery === 255 || p.battery < 0 ? 255 : step(p.battery, 254));
+    i64(p.aid); i64(senderId);
+    const name = utf8(p.author, 80); u8(name.length); bytes(name);
+    const who = utf8(sender, 80); u8(who.length); bytes(who);
+    const note = utf8((p.note || "").substring(0, NOTE_MAX));
+    // ocazia darului stă în doi biți din semne (8 și 16); un dar de ocazie are spate și fără gând
+    const occasion = coerce(p.occasion | 0, 0, 2);
+    const signed = note.length > 0 || !!p.burned || occasion !== 0;
+    u8(p.gen);
+    u8((p.secret && note.length > 0 ? 1 : 0) | (p.burned ? 2 : 0) | (signed ? 4 : 0) | (occasion << 3));
+    if (signed) {
+      i64(p.noteAt);
+      u16(note.length); bytes(note);
+      const by = utf8(p.noteBy, 80); u8(by.length); bytes(by);
+    }
+    const strokes = p.strokes.slice(0, 255);
+    u8(strokes.length);
+    for (const s of strokes) {
+      const pts = s.slice(0, 255);
+      u8(pts.length);
+      let px = 0, py = 0, dx = 0, dy = 0;
+      pts.forEach((q, i) => {
+        const x = q[0], y = q[1];
+        if (i === 0) { u16(x); u16(y); }
+        else if (i === 1) { zig(x - px); zig(y - py); }
+        else { zig((x - px) - dx); zig((y - py) - dy); }
+        if (i >= 1) { dx = x - px; dy = y - py; }
+        px = x; py = y;
+      });
+    }
+    let bin = "";
+    for (let i = 0; i < out.length; i++) bin += String.fromCharCode(out[i]);
+    return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  }
+  const NOTE_MAX = 240;
+
+  /**
+   * Familia de culori a plicului din cartonașul de link (Composer.envelopeKey): l sau d (hârtie deschisă sau închisă)
+   * și una din șase nuanțe de sigiliu, cea mai apropiată de tulpina tabloului. Aceleași ca în tools/plicuri.js.
+   */
+  function envelopeKey(p) {
+    const pal = plan(1200, 630, p).pal;
+    let h = colorToHSV(pal.stem);
+    if (h[1] < F(0.12)) h = colorToHSV(pal.background);
+    const centers = [15, 42, 140, 185, 220, 290];
+    let best = 0, bestD = 999;
+    centers.forEach((c, i) => {
+      let d = Math.abs(f(h[0] - c));
+      if (d > 180) d = f(360 - d);
+      if (d < bestD) { bestD = d; best = i; }
+    });
+    return (pal.dark ? "d" : "l") + best;
   }
 
   /** Semnătura de pe tablou, ca Renders.signature: „autor · 12 noiembrie 2026, 10:00”, pe ora telefonului. */
@@ -2210,6 +2287,6 @@
     render, ink, Path, Recorder, Canvas2D, NullCanvas,
     renderEnvelope, decode, signature, paramsFromPiece, CODE_VERSION, GEN, SHEET,
     renderBack, stampFor, stampDate, renderEnvelopePal,
-    tierOf, renderBlank, distill,
+    tierOf, renderBlank, distill, encode, envelopeKey, NOTE_MAX,
     ARMONIE, NEON, PASTEL, TUS, BRUT, REGISTERS, _internals: { f, F, hsv, luminance, contrast, mix, generate, wobble } };
 });

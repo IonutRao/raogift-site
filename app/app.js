@@ -4,13 +4,14 @@
  * Tabloul îl desenează ../g/seva.js, același cod care arată darurile în browser și care e ținut, formă cu formă, la fel cu
  * aplicația de Android. Aici e doar ce ține de ecran și de telefon: urma degetului, butoanele, colecția păstrată local.
  *
- * Făcut până acum: planșa (proba 1), Păstrează, numele semnatarului și colecția (proba 2), raritatea cu momentul ei (proba 3).
- * Urmează, pe rând: darurile, limita zilei și abonamentul, preferințele, Despre, sunetele.
+ * Făcut până acum: planșa (proba 1), Păstrează, numele semnatarului și colecția (proba 2), raritatea cu momentul ei (proba 3),
+ * dăruitul: fereastra darului, linkul scris ca în aplicație, urmele celor dăruite (proba 4).
+ * Urmează, pe rând: primirea unui dar, limita zilei și abonamentul, preferințele, Despre, sunetele.
  */
 (function () {
   "use strict";
 
-  var BUILD = "probă 3";
+  var BUILD = "probă 4";
   var lang = /^ro\b/i.test(navigator.language || "ro") ? "ro" : "en";
   var T = {
     ro: {
@@ -21,6 +22,11 @@
       backToBoard: "Înapoi la planșă", tier0: "Tablou simplu", choiceKept: "%s. E în colecția ta.",
       tiers: [null, "Piesă rară", "Piesă de colecție", "Seva de aur"], rareFound: "Un tablou rar și-a găsit rama.", goldSub: "cel mai rar dintre tablouri",
       often: "rare des",
+      gift: "Dăruiește", giftLang: "r", gifted: "Dăruit", givenTab: "Dăruite", giftFailed: "Nu am putut pregăti darul.", linkCopied: "Linkul darului a fost copiat.",
+      giftAsk: "Tabloul va pleca din colecția ta și va rămâne doar amintirea lui. Pleacă într-un plic închis; cine îl primește îl deschide și, dacă are Seva, îl adaugă în colecția lui.\n\nÎn WhatsApp, așteaptă o clipă să apară plicul deasupra mesajului, apoi trimite.",
+      giftAskNow: "Tabloul pleacă într-un plic închis; cine îl primește îl deschide și, dacă are Seva, îl adaugă în colecția lui. La tine rămâne doar amintirea lui.\n\nÎn WhatsApp, așteaptă o clipă să apară plicul deasupra mesajului, apoi trimite.",
+      giftNoteHint: "Un gând pentru cel care îl primește (opțional)", secretCheck: "Top secret", occasionBirthday: "Zi de naștere", occasionChristmas: "Crăciun",
+      givenEmpty: "Nu ai dăruit încă niciun tablou. Când o vei face, urma lui va rămâne aici.",
       collection: "Colecția", back: "Înapoi", del: "Șterge", cancel: "Renunță",
       collectionEmpty: "Colecția e goală deocamdată. Primul tablou te așteaptă pe ecranul de desen.",
       deleteAsk: "Ștergi tabloul din colecție?",
@@ -37,6 +43,11 @@
       backToBoard: "Back to the board", tier0: "Plain piece", choiceKept: "%s. It is in your collection.",
       tiers: [null, "Rare piece", "Collector's piece", "Golden Seva"], rareFound: "A rare piece has found its frame.", goldSub: "the rarest of all pieces",
       often: "rare often",
+      gift: "Give", giftLang: "e", gifted: "Given", givenTab: "Given", giftFailed: "Could not prepare the gift.", linkCopied: "The gift link has been copied.",
+      giftAsk: "The piece will leave your collection and only its memory will remain. It travels in a sealed envelope; whoever receives it opens it and, if they have Seva, adds it to their collection.\n\nIn WhatsApp, wait a moment for the envelope to appear above the message, then send.",
+      giftAskNow: "The piece travels in a sealed envelope; whoever receives it opens it and, if they have Seva, adds it to their collection. Only its memory stays with you.\n\nIn WhatsApp, wait a moment for the envelope to appear above the message, then send.",
+      giftNoteHint: "A thought for whoever receives it (optional)", secretCheck: "Top secret", occasionBirthday: "Birthday", occasionChristmas: "Christmas",
+      givenEmpty: "You have not given any piece yet. When you do, its trace will stay here.",
       collection: "Collection", back: "Back", del: "Delete", cancel: "Cancel",
       collectionEmpty: "Your collection is empty for now. The first piece is waiting on the drawing screen.",
       deleteAsk: "Remove this piece from your collection?",
@@ -83,14 +94,27 @@
 
     /** Tabloul, cum stă în memorie: întregii din cod, sămânța și semnele ca text (nu încap într-un număr obișnuit). */
     function pack(p) {
-      return { id: p.id, seed: String(p.seed), createdAt: p.createdAt, author: p.author, aid: p.aid || "0", gen: p.gen,
+      var o = { id: p.id, seed: String(p.seed), createdAt: p.createdAt, author: p.author, aid: p.aid || "0", gen: p.gen,
         nervous: p.nervous, slow: p.slow, light: p.light, battery: p.battery,
         strokes: p.strokes.map(function (s) { var flat = []; s.forEach(function (q) { flat.push(q[0], q[1]); }); return flat; }) };
+      // de la cine a venit, când a plecat în dar și spatele cărții poștale, doar dacă există (ca în Piece.toJson)
+      if (p.from) o.from = p.from;
+      if (p.fromId && p.fromId !== "0") o.fid = p.fromId;
+      if (p.giftedAt) o.giftedAt = p.giftedAt;
+      if (p.note) o.note = p.note;
+      if (p.note || p.burned || p.occasion) { o.noteBy = p.noteBy || ""; o.noteAt = p.noteAt || 0; }
+      if (p.occasion) o.occasion = p.occasion;
+      if (p.secret) o.secret = true;
+      if (p.burned) o.burned = true;
+      return o;
     }
     function unpack(o) {
       return { id: o.id, seed: BigInt(o.seed), createdAt: o.createdAt, author: o.author || "", aid: o.aid || "0", gen: o.gen | 0,
         nervous: o.nervous, slow: o.slow, light: o.light, battery: o.battery,
-        strokes: o.strokes.map(function (flat) { var s = []; for (var i = 0; i + 1 < flat.length; i += 2) s.push([flat[i], flat[i + 1]]); return s; }) };
+        strokes: o.strokes.map(function (flat) { var s = []; for (var i = 0; i + 1 < flat.length; i += 2) s.push([flat[i], flat[i + 1]]); return s; }),
+        from: o.from || null, fromId: o.fid || "0", giftedAt: o.giftedAt || null,
+        note: o.note || null, noteBy: o.noteBy === undefined ? null : o.noteBy, noteAt: o.noteAt || 0,
+        secret: !!o.secret, burned: !!o.burned, occasion: o.occasion | 0 };
     }
     function load() {
       if (pieces) return pieces;
@@ -119,7 +143,11 @@
         return String(id);
       },
       /** Tablourile păstrate, cele mai noi întâi. */
-      list: function () { return load().slice().sort(function (a, b) { return b.createdAt - a.createdAt; }); },
+      list: function () { return load().filter(function (x) { return !x.giftedAt; }).sort(function (a, b) { return b.createdAt - a.createdAt; }); },
+      /** Urmele celor dăruite. */
+      given: function () { return load().filter(function (x) { return !!x.giftedAt; }).sort(function (a, b) { return b.createdAt - a.createdAt; }); },
+      /** Tabloul schimbat (spatele scris, plecarea în dar) se scrie la loc. */
+      update: function (p) { load(); var i = pieces.findIndex(function (x) { return x.id === p.id; }); if (i >= 0) pieces[i] = p; else pieces.push(p); save(); },
       add: function (p) { load(); if (pieces.some(function (x) { return x.id === p.id; })) return false; pieces.push(p); save(); return true; },
       remove: function (id) { load(); pieces = pieces.filter(function (x) { return x.id !== id; }); save(); }
     };
@@ -194,7 +222,14 @@
 
   // ================================================================ fereastra de întrebat
 
-  var modal = $("modal"), mInput = $("m-input"), mOk = $("m-ok"), mCancel = $("m-cancel"), mDone = null;
+  var modal = $("modal"), mInput = $("m-input"), mOk = $("m-ok"), mCancel = $("m-cancel"), mDone = null, mSync = null;
+  var toastEl = $("toast"), toastTimer = 0;
+  /** Un rând scurt care apare și trece. */
+  function toast(text) {
+    toastEl.textContent = text; toastEl.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.hidden = true; }, 2800);
+  }
   /** o: { title, text, input (îndemnul câmpului), ok, cancel }. Întoarce, prin then, textul scris sau true; null la Renunță. */
   function ask(o) {
     return new Promise(function (resolve) {
@@ -202,15 +237,95 @@
       $("m-text").textContent = o.text || ""; $("m-text").hidden = !o.text;
       mInput.hidden = !o.input; mInput.value = ""; mInput.placeholder = o.input || "";
       mOk.textContent = o.ok; mCancel.textContent = o.cancel || ""; mCancel.hidden = !o.cancel;
+      $("m-gift").hidden = !o.gift;
+      mSync = o.sync || null;
       mDone = function (v) { mDone = null; mInput.blur(); modal.hidden = true; window.scrollTo(0, 0); resolve(v); };
       modal.hidden = false;
     });
   }
-  mOk.addEventListener("click", function () { if (mDone) mDone(mInput.hidden ? true : mInput.value); });
+  mOk.addEventListener("click", function () {
+    if (!mDone) return;
+    var v = mInput.hidden ? true : mInput.value, now = mSync;
+    mSync = null;
+    if (now) now(v);      // pe loc, în aceeași atingere
+    mDone(v);
+  });
   mCancel.addEventListener("click", function () { if (mDone) mDone(null); });
   mInput.addEventListener("keydown", function (e) { if (e.key === "Enter" && mDone) mDone(mInput.value); });
   // după ce tastatura se strânge, pagina revine la locul ei
   mInput.addEventListener("blur", function () { setTimeout(function () { window.scrollTo(0, 0); }, 60); });
+
+  // ================================================================ darul (Gift.kt)
+  //
+  // Întâi întrebarea, cu gândul de pe spate; apoi plicul, adică linkul, prin ce aplicație alege omul.
+  // Linkul e scris de Seva.encode, la fel ca în aplicația de Android: un dar de pe iPhone se deschide la fel oriunde.
+
+  var gNote = $("g-note"), gSecret = $("g-secret"), gBirthday = $("g-birthday"), gChristmas = $("g-christmas");
+  gNote.placeholder = T.giftNoteHint;
+  $("g-secret-t").textContent = T.secretCheck; $("g-birthday-t").textContent = T.occasionBirthday; $("g-christmas-t").textContent = T.occasionChristmas;
+  // cel mult o ocazie
+  gBirthday.addEventListener("change", function () { if (gBirthday.checked) gChristmas.checked = false; });
+  gChristmas.addEventListener("change", function () { if (gChristmas.checked) gBirthday.checked = false; });
+  gNote.addEventListener("blur", function () { setTimeout(function () { window.scrollTo(0, 0); }, 60); });
+
+  /** Are ceva pe spate: un gând, urma unuia ars, sau ștampila unei ocazii. */
+  function hasBack(p) { return !!p.note || !!p.burned || (p.occasion | 0) !== 0; }
+
+  /** Crăciunul se poate alege doar în sezon, de la 1 decembrie până la 6 ianuarie. În pagina de probă, cu „rare des”, se vede mereu. */
+  function christmasSeason() {
+    if (Rarity.often()) return true;
+    var d = new Date();
+    return d.getMonth() === 11 || (d.getMonth() === 0 && d.getDate() <= 6);
+  }
+
+  /** Linkul darului: plicul din familia de culori a tabloului, în limba celui care dăruiește, apoi codul. */
+  function giftLink(p) {
+    var envelope = T.giftLang + Seva.envelopeKey(Seva.paramsFromPiece(p, lang)) + (p.secret && p.note ? "s" : "") + (p.occasion === 1 ? "b" : p.occasion === 2 ? "c" : "");
+    return "https://sevarao.com/g/" + envelope + "/#" + Seva.encode(p, Store.author() || "", Store.authorId());
+  }
+
+  /** Fereastra de partajare a telefonului. Întoarce, prin then, true dacă darul a plecat și false dacă omul a închis fereastra. */
+  function share(link) {
+    if (window.SevaTestShare) return Promise.resolve(window.SevaTestShare(link));
+    if (navigator.share) return navigator.share({ url: link }).then(function () { return true; }, function (e) { if (e && e.name === "AbortError") return false; throw e; });
+    // fără fereastră de partajare (un browser de birou): linkul se copiază
+    if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(link).then(function () { toast(T.linkCopied); return true; });
+    return Promise.reject(new Error("fara partajare"));
+  }
+
+  /**
+   * Întrebarea dinaintea darului și plecarea lui. Dacă spatele e gol, se poate scrie un gând (o singură dată), se poate face
+   * top secret și se poate alege ocazia. `fresh` = tabloul abia compus, dăruit de pe planșă. `done` se cheamă după ce a plecat.
+   * Dacă fereastra de partajare e închisă fără să fie ales nimic, nu s-a întâmplat nimic: tabloul rămâne cum era.
+   */
+  function giveAway(p, fresh, done) {
+    var write = !hasBack(p);
+    gNote.value = ""; gSecret.checked = false; gBirthday.checked = false; gChristmas.checked = false;
+    $("g-christmas-row").hidden = !christmasSeason();
+    ask({ title: T.gift, text: fresh ? T.giftAskNow : T.giftAsk, gift: write, ok: T.gift, cancel: T.cancel, sync: function () {
+      var before = { note: p.note, noteBy: p.noteBy, noteAt: p.noteAt, secret: p.secret, occasion: p.occasion };
+      var undo = function () { p.note = before.note; p.noteBy = before.noteBy; p.noteAt = before.noteAt; p.secret = before.secret; p.occasion = before.occasion; };
+      if (write) {
+        var text = gNote.value.trim().substring(0, Seva.NOTE_MAX);
+        var occasion = gBirthday.checked ? 1 : (gChristmas.checked && christmasSeason() ? 2 : 0);
+        if (text.length > 0 || occasion !== 0) {
+          // spatele se scrie o singură dată: gândul, dacă e, și ocazia, cu numele și clipa celui care dăruiește
+          if (text.length > 0) p.note = text;
+          p.noteBy = Store.author() || ""; p.noteAt = Date.now();
+          p.secret = text.length > 0 && gSecret.checked;
+          p.occasion = occasion;
+        }
+      }
+      var link;
+      try { link = giftLink(p); } catch (e) { undo(); toast(T.giftFailed); if (window.console) console.error(e); return; }
+      share(link).then(function (sent) {
+        if (!sent) { undo(); return; }
+        p.giftedAt = Date.now();
+        Store.update(p);
+        done();
+      }, function (e) { undo(); toast(T.giftFailed); if (window.console) console.error(e); });
+    } });
+  }
 
   // ================================================================ ecranele
 
@@ -223,9 +338,9 @@
   // ================================================================ planșa de desen (GrowthView.kt, MainActivity.kt)
 
   var stage = $("stage"), board = $("board"), hint = $("hint");
-  var btn = { clear: $("clear"), compose: $("compose"), keep: $("keep"), another: $("another"), again: $("again"), backBoard: $("back-board") };
+  var btn = { clear: $("clear"), compose: $("compose"), keep: $("keep"), another: $("another"), again: $("again"), backBoard: $("back-board"), give: $("give") };
   btn.clear.textContent = T.clear; btn.compose.textContent = T.compose; btn.keep.textContent = T.keep;
-  btn.another.textContent = T.another; btn.again.textContent = T.again; btn.backBoard.textContent = T.backToBoard;
+  btn.another.textContent = T.another; btn.again.textContent = T.again; btn.backBoard.textContent = T.backToBoard; btn.give.textContent = T.gift;
   $("to-collection").textContent = T.collection;
   // doar în pagina de probă: atingerea numărului probei face tablourile rare să apară des, ca efectele lor să poată fi văzute
   function paintBuild() { $("build").textContent = BUILD + (Rarity.often() ? " · " + T.often : ""); }
@@ -405,7 +520,7 @@
     var n = strokes.length;
     btn.compose.hidden = btn.clear.hidden = !(!composed && n > 0);
     btn.keep.hidden = btn.another.hidden = btn.again.hidden = !(composed && !locked);
-    btn.backBoard.hidden = !locked || !!rv;
+    btn.backBoard.hidden = btn.give.hidden = !locked || !!rv;
     var tier = locked && piece ? Seva.tierOf(piece.seed) : 0;
     hint.textContent = rv ? T.rareFound : locked ? T.choiceKept.replace("%s", T.tiers[tier] || T.tier0) : composed ? T.hintComposed : (n === 0 ? "\u00a0" : T.hintMore);
     hint.classList.toggle("none", n === 0 && !composed);
@@ -452,6 +567,13 @@
     else reveal(tier, T.tiers[tier], tier === 3 ? T.goldSub : "", function () { state(); invalidate(); });
   });
   btn.backBoard.addEventListener("click", startNew);
+  btn.give.addEventListener("click", function () {      // darul de pe planșă, imediat după ce tabloul și-a arătat treapta
+    var p = piece;
+    if (!p || !locked || rv) return;
+    // între timp putea fi șters sau dăruit din colecție
+    if (!Store.list().some(function (x) { return x.id === p.id; })) { startNew(); return; }
+    giveAway(p, true, function () { forget(p.id); startNew(); });
+  });
   $("to-collection").addEventListener("click", function () { go("collection"); });
 
   // ---------------------------------------------------------------- momentul în care un tablou rar își primește rama (GrowthView.reveal)
@@ -676,8 +798,37 @@
   // ================================================================ colecția (CollectionActivity.kt)
 
   var grid = $("grid"), gridWrap = $("grid-wrap"), colEmpty = $("col-empty");
-  $("col-title").textContent = T.collection; $("col-back").textContent = T.back;
-  colEmpty.textContent = T.collectionEmpty;
+  $("col-back").textContent = T.back;
+  var tabKept = $("tab-kept"), tabGiven = $("tab-given"), givenTab = false;
+  tabKept.textContent = T.collection; tabGiven.textContent = T.givenTab;
+  tabKept.addEventListener("click", function () { givenTab = false; onShow.collection(); });
+  tabGiven.addEventListener("click", function () { givenTab = true; onShow.collection(); });
+  /** Miniatura unui tablou nu mai e bună (a fost șters sau a plecat în dar). */
+  function forget(id) {
+    [id, id + "-d"].forEach(function (k) { if (thumbs[k]) { try { URL.revokeObjectURL(thumbs[k]); } catch (e) { } delete thumbs[k]; } });
+  }
+  /** Urma unui tablou dăruit: tabloul stins, cu „Dăruit” și data peste el (CollectionActivity.trace). */
+  function fade(small, p) {
+    var c = small.getContext("2d"), w = small.width, h = small.height;
+    var img = c.getImageData(0, 0, w, h), d = img.data, a = 0x5C / 255;
+    for (var i = 0; i < d.length; i += 4) {
+      var lum = 0.213 * d[i] + 0.715 * d[i + 1] + 0.072 * d[i + 2];
+      d[i] = 0x1E * (1 - a) + (lum * 0.8 + d[i] * 0.2) * a;
+      d[i + 1] = 0x1D * (1 - a) + (lum * 0.8 + d[i + 1] * 0.2) * a;
+      d[i + 2] = 0x24 * (1 - a) + (lum * 0.8 + d[i + 2] * 0.2) * a;
+      d[i + 3] = 255;
+    }
+    c.putImageData(img, 0, 0);
+    // un văl întunecat la mijloc, ca textul să se citească pe orice tablou
+    c.fillStyle = "rgba(30,29,36,0.706)"; c.fillRect(0, h * 0.38, w, h * 0.24);
+    var day = new Date(p.giftedAt), month;
+    try { month = new Intl.DateTimeFormat(lang, { month: "long" }).format(day); } catch (e) { month = String(day.getMonth() + 1); }
+    c.fillStyle = "#B8B2A6"; c.textAlign = "center"; c.textBaseline = "alphabetic";
+    c.font = "italic " + (w * 0.075) + "px Georgia, 'Times New Roman', serif";
+    c.fillText(T.gifted, w / 2, h / 2 - w * 0.05);
+    c.font = "italic " + (w * 0.06) + "px Georgia, 'Times New Roman', serif";
+    c.fillText(day.getDate() + " " + month + " " + day.getFullYear(), w / 2, h / 2 + w * 0.07);
+  }
   var shown = [];              // tablourile din grilă, în ordinea în care se văd
   var thumbs = {};             // miniaturile făcute: id -> adresa imaginii
   var jobs = [], working = false;
@@ -688,7 +839,7 @@
     if (working) return;
     var job = jobs.shift();
     if (!job) return;
-    if (!job.img.isConnected || thumbs[job.p.id]) { work(); return; }
+    if (!job.img.isConnected || thumbs[job.key]) { work(); return; }
     working = true;
     setTimeout(function () {
       try {
@@ -696,7 +847,8 @@
         var w = Math.round(Math.min(job.img.parentNode.clientWidth || 170, 220) * Math.min(ratio(), 2));
         var small = mk(w, Math.round(w * S.h / S.w));
         sheetInto(small);
-        var done = function (url) { thumbs[job.p.id] = url; job.img.src = url; job.img.classList.add("ready"); small.width = 0; working = false; work(); };
+        if (job.given) fade(small, job.p);
+        var done = function (url) { thumbs[job.key] = url; job.img.src = url; job.img.classList.add("ready"); small.width = 0; working = false; work(); };
         if (small.toBlob) small.toBlob(function (b) { done(b ? URL.createObjectURL(b) : small.toDataURL("image/jpeg", 0.9)); }, "image/jpeg", 0.9);
         else done(small.toDataURL("image/jpeg", 0.9));
       } catch (e) { if (window.console) console.error(e); working = false; work(); }
@@ -705,7 +857,10 @@
 
   onShow.collection = function () {
     shown = Store.list();
-    colEmpty.hidden = shown.length > 0;
+    var given = givenTab, list = given ? Store.given() : shown;
+    tabKept.classList.toggle("on", !given); tabGiven.classList.toggle("on", given);
+    colEmpty.textContent = given ? T.givenEmpty : T.collectionEmpty;
+    colEmpty.hidden = list.length > 0;
     grid.textContent = "";
     jobs = [];
     if (watcher) watcher.disconnect();
@@ -713,31 +868,34 @@
       entries.forEach(function (en) {
         if (!en.isIntersecting) return;
         watcher.unobserve(en.target);
-        jobs.push({ p: en.target._piece, img: en.target.firstChild });
+        jobs.push({ p: en.target._piece, key: en.target._key, given: given, img: en.target.firstChild });
       });
       work();
     }, { root: gridWrap, rootMargin: "400px 0px" }) : null;
-    shown.forEach(function (p, i) {
-      var cell = document.createElement("div");
-      cell.className = "cell"; cell.setAttribute("role", "button");
+    list.forEach(function (p, i) {
+      var cell = document.createElement("div"), key = p.id + (given ? "-d" : "");
+      cell.className = given ? "cell given" : "cell";
+      if (!given) cell.setAttribute("role", "button");
+      cell._key = key;
       var img = document.createElement("img");
       img.alt = ""; img.draggable = false;
       cell.appendChild(img);
       cell._piece = p;
-      if (thumbs[p.id]) { img.src = thumbs[p.id]; img.classList.add("ready"); }
+      if (thumbs[key]) { img.src = thumbs[key]; img.classList.add("ready"); }
       else if (watcher) watcher.observe(cell);
-      else jobs.push({ p: p, img: img });
-      cell.addEventListener("click", function () { openViewer(i); });
+      else jobs.push({ p: p, key: key, given: given, img: img });
+      // urma unui tablou dăruit nu se deschide: tabloul e la cel care l-a primit
+      if (!given) cell.addEventListener("click", function () { openViewer(i); });
       grid.appendChild(cell);
     });
     work();
   };
-  $("col-back").addEventListener("click", function () { go("board"); });
+  $("col-back").addEventListener("click", function () { givenTab = false; go("board"); });
 
   // ================================================================ tabloul mare (ViewActivity.kt)
 
   var viewStage = $("view-stage"), view = $("view"), viewAt = 0;
-  $("view-back").textContent = T.back; $("view-delete").textContent = T.del;
+  $("view-back").textContent = T.back; $("view-delete").textContent = T.del; $("view-give").textContent = T.gift;
 
   function openViewer(i) { viewAt = i; go("viewer"); }
 
@@ -777,15 +935,22 @@
     ask({ text: T.deleteAsk, ok: T.del, cancel: T.cancel }).then(function (yes) {
       if (!yes) return;
       Store.remove(p.id);
-      if (thumbs[p.id]) { try { URL.revokeObjectURL(thumbs[p.id]); } catch (e) { } delete thumbs[p.id]; }
-      // tabloul șters de pe planșă nu mai e „în colecția ta”: planșa pornește de la capăt
-      if (piece && piece.id === p.id && locked) startNew();
-      // după ștergere rămâi la tabloul vecin; colecția se arată doar dacă nu a mai rămas niciunul
-      shown = Store.list();
-      if (shown.length === 0) { go("collection"); return; }
-      viewAt = Math.min(viewAt, shown.length - 1);
-      drawViewer();
+      gone(p);
     });
+  });
+  /** După ce tabloul de pe ecran a fost șters sau dăruit: rămâi la vecinul lui; colecția se arată doar dacă nu a mai rămas niciunul. */
+  function gone(p) {
+    forget(p.id);
+    // tabloul plecat de pe planșă nu mai e „în colecția ta”: planșa pornește de la capăt
+    if (piece && piece.id === p.id && locked) startNew();
+    shown = Store.list();
+    if (shown.length === 0) { go("collection"); return; }
+    viewAt = Math.min(viewAt, shown.length - 1);
+    drawViewer();
+  }
+  $("view-give").addEventListener("click", function () {
+    var p = shown[viewAt];
+    if (p) giveAway(p, false, function () { gone(p); });
   });
 
   // ================================================================ pornirea
@@ -818,7 +983,7 @@
   window.SevaApp = {
     state: function () {
       return { view: document.body.getAttribute("data-view"), strokes: strokes.length, composed: composed, locked: locked, piece: piece,
-        card: card, seed: String(seed), author: Store.author(), kept: Store.list().length, thumbs: Object.keys(thumbs).length,
+        card: card, seed: String(seed), author: Store.author(), kept: Store.list().length, given: Store.given().length, thumbs: Object.keys(thumbs).length,
         tier: Seva.tierOf(seed), revealing: rv ? rv.tier : 0, ticketsLeft: Rarity.ticketsLeft(), often: Rarity.often() };
     }
   };
