@@ -29,7 +29,17 @@ body[data-view="board"] #v-board, body[data-view="collection"] #v-collection, bo
 
 .stage { flex:1 1 auto; min-height:0; position:relative; }
 #board { position:absolute; left:0; top:0; width:100%; height:100%; display:block; touch-action:none; }
-#view { position:absolute; display:block; box-shadow: 0 3px 0 6px rgba(0,0,0,.09), 0 2px 0 4px rgba(0,0,0,.09), 0 1px 0 2px rgba(0,0,0,.09); }
+/* tabloul mare: fața și spatele, lipite spate în spate; cartea se întoarce cu totul */
+#view-stage { perspective:1500px; -webkit-perspective:1500px; }
+#vcard { position:absolute; transform-style:preserve-3d; -webkit-transform-style:preserve-3d; transition: transform .68s cubic-bezier(.45,.05,.3,1); }
+#vcard.turned { transform: rotateY(180deg); }
+#vcard canvas { position:absolute; left:0; top:0; width:100%; height:100%; display:block;
+                backface-visibility:hidden; -webkit-backface-visibility:hidden;
+                box-shadow: 0 3px 0 6px rgba(0,0,0,.09), 0 2px 0 4px rgba(0,0,0,.09), 0 1px 0 2px rgba(0,0,0,.09); }
+#view-back-face { transform: rotateY(180deg); }
+.from { position:absolute; left:16px; right:130px; color:var(--cream); font-style:italic; font-size:15px; text-align:left;
+        white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+#fest { position:fixed; left:0; top:0; width:100vw; height:100vh; pointer-events:none; z-index:10; }
 
 .bar { flex:0 0 auto; padding: 12px 16px 14px; text-align:center; }
 .hint { margin:0; padding: 0 12px 10px; color:var(--hint); font-size:14px; line-height:1.3;

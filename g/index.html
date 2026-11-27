@@ -100,6 +100,7 @@
       after: "După ce instalezi Seva, întoarce-te la mesaj și atinge din nou plicul: abia atunci tabloul intră în colecția ta.",
       update: "Ai deja Seva și tabloul nu se deschide în ea? Actualizeaz-o din Google Play, apoi deschide din nou linkul.",
       ios: "Seva este deocamdată doar pentru Android.", iosStay: " Tabloul tău rămâne aici, la acest link.",
+      keepHere: "Pune-l în colecția ta",
       other: "Pe un telefon cu Android, tabloul poate intra în colecția ta din Seva.",
       foot: "Tabloul renaște din parametrii lui, chiar aici, în browserul tău. Nimic nu este trimis nicăieri.",
       newer: "Tabloul acesta e făcut cu o Seva mai nouă decât pagina, care încă nu știe să-l deseneze.", newerApp: " Se deschide în aplicație.",
@@ -118,6 +119,7 @@
       after: "Once you have installed Seva, go back to the message and tap the envelope again: only then does the piece join your collection.",
       update: "You already have Seva and the piece does not open in it? Update it from Google Play, then open the link again.",
       ios: "Seva is only on Android for now.", iosStay: " Your piece stays here, at this link.",
+      keepHere: "Add it to your collection",
       other: "On an Android phone, the piece can join your collection in Seva.",
       foot: "The piece is reborn from its parameters, right here in your browser. Nothing is sent anywhere.",
       newer: "This piece was made with a newer Seva than this page, which cannot draw it yet.", newerApp: " It opens in the app.",
@@ -144,7 +146,14 @@
         show("open", T.open).href = "intent://g/" + code + "#Intent;scheme=seva;package=ro.ovidiu.seva;S.browser_fallback_url=" + encodeURIComponent(playUrl) + ";end";
         show("info", T.android); show("after", T.after); show("update", T.update);
       } else show("play", T.play);
-    } else if (ios) show("info", T.ios + (stays ? T.iosStay : ""));
+    } else if (ios) {
+      // Seva pentru iPhone e în lucru, ca pagină de probă (../app/). Cine a deschis-o deja pe telefonul acesta își poate
+      // pune darul în colecția de acolo; restul lumii nu vede nimic nou.
+      var tester = false;
+      try { tester = !!localStorage.getItem("seva.aid"); } catch (e) { }
+      if (tester && withCode) show("open", T.keepHere).href = "../app/#g=" + code;
+      show("info", T.ios + (stays ? T.iosStay : ""));
+    }
     else { show("play", T.play); show("info", T.other); }
   }
   function words(head, say) { show("head", head); show("say", say); }
