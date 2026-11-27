@@ -157,3 +157,32 @@ body[data-view="about"] #v-about { display:flex; }
 #about > .link { padding: 8px 0 4px 4px; font-size:15px; }
 .foot { margin: 2px 0; padding-left:4px; color:#8A857C; font-size:13.5px; line-height:1.4; }
 .foot.dim { color:#6A6660; padding-bottom:10px; touch-action:manipulation; }
+
+/* medaliile: trei file în colecție, sigiliile câte patru pe rând, sigiliul mare apăsat pe ecran */
+.tabs { gap:6px; padding-left:6px; }
+.tab { padding:0 12px; }
+#medals { padding: 4px 16px 28px; text-align:left; }
+#medals .intro { margin: 4px 0 6px; color:#9A948A; font-size:14px; line-height:1.4; }
+#medals h3 { margin:0; padding: 18px 0 8px; color:var(--cream); font-weight:400; font-size:18px; }
+.seals { display:grid; grid-template-columns: repeat(4, 1fr); }
+.seal { padding: 6px 2px 8px; text-align:center; min-width:0; }
+.seal canvas { width:66px; height:66px; display:block; margin:0 auto; }
+.seal .name { margin: 4px 0 0; font-size:12.5px; line-height:1.25; color:#6E6C76; }
+.seal.earned { cursor:pointer; touch-action:manipulation; }
+.seal.earned .name { color:#E6E1D6; }
+.seal .at { margin:0; font-size:11.5px; line-height:1.4; color:#5C5A64; }
+#medals .next { margin: 2px 0 4px; color:#9A948A; font-size:13.5px; line-height:1.4; }
+#stamp { position:fixed; left:0; top:0; right:0; bottom:0; z-index:40; background:rgba(12,11,16,.878); touch-action:manipulation; cursor:pointer; }
+#stamp canvas { position:absolute; left:0; top:0; width:100%; height:100%; display:block; }
+#stamp p { position:absolute; left:0; right:0; margin:0; text-align:center; pointer-events:none; line-height:1; }
+#stamp-label { font-size:13px; letter-spacing:.18em; text-indent:.18em; color:rgba(201,205,216,.69); }
+#stamp-name { font-size:30px; font-style:italic; color:var(--cream); white-space:nowrap; }
+#stamp-line { font-size:14.5px; line-height:22px !important; color:rgba(201,205,216,.75); white-space:pre-line; }
+#toast { z-index:50; }
+/* pe telefoanele înguste, cele trei file și „Înapoi” își strâng puțin rândul */
+@media (max-width: 380px) {
+  .top.col { padding:0 8px; }
+  .top.col .pill.flow { padding:0 11px; font-size:14px; }
+  .tabs { gap:4px; padding-left:4px; }
+  .tab { padding:0 9px; font-size:14px; letter-spacing:0; }
+}

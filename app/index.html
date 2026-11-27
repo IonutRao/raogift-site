@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="Seva">
 <title>Seva</title>
 <!-- Seva pentru iPhone, în lucru: interiorul aplicației, făcut pe codul paginii de dar (../g/seva.js). Pagină de probă, nelegată de nicăieri. -->
-<link rel="stylesheet" href="app.css?v=7">
+<link rel="stylesheet" href="app.css?v=8">
 </head>
 <body data-view="board">
 
@@ -43,11 +43,13 @@
     <div class="tabs">
       <button id="tab-kept" class="tab on" type="button"></button>
       <button id="tab-given" class="tab" type="button"></button>
+      <button id="tab-medals" class="tab" type="button"></button>
     </div>
   </header>
   <div id="grid-wrap" class="scroll">
     <p id="col-empty" class="empty" hidden></p>
     <div id="grid"></div>
+    <div id="medals" hidden></div>
   </div>
 </section>
 
@@ -93,9 +95,17 @@
   </div>
 </div>
 
+<!-- sigiliul unei medalii, apăsat pe ecran -->
+<div id="stamp" hidden>
+  <canvas id="stamp-seal"></canvas>
+  <p id="stamp-label"></p>
+  <p id="stamp-name"></p>
+  <p id="stamp-line"></p>
+</div>
+
 <div id="toast" hidden></div>
 
 <script src="../g/seva.js?v=10"></script>
-<script src="app.js?v=7"></script>
+<script src="app.js?v=8"></script>
 </body>
 </html>

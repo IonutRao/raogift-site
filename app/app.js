@@ -12,7 +12,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "probă 7";
+  var BUILD = "probă 8";
   // limba: cea aleasă în Despre, altfel a telefonului
   var lang = (function () {
     var chosen = null;
@@ -103,6 +103,15 @@
       aboutVersion: "Varianta din browser",
       fam: ["ramurile", "bulele", "panglicile", "constelațiile", "mozaicurile", "cuburile"],
       reg: ["", "culorile neon", "pastelurile", "tablourile într-o singură cerneală", "culorile care se ceartă"],
+      medalsTab: "Medalii",
+      medalsIntro: "Medaliile se câștigă dăruind. Fiecare tablou plecat din colecția ta se numără.",
+      medalNew: "Medalie nouă",
+      medalAt: "la {1}",
+      medalSince: "primită pe {1}",
+      medalAll: "Ai toate medaliile de aici.",
+      medalLadders: ["Daruri", "Top secret", "Aur"],
+      medalNames: [["Primul plic", "Poștaș de ocazie", "Curier de artă", "Mână largă", "Darnic de meserie", "Furnizor oficial de bucurii", "Legenda poștei", "Ministrul bucuriei"], ["Confident", "Complice", "Agent secret", "Agent dublu", "Maestru al deghizării", "Șeful spionilor", "Eminența cenușie", "Secret de stat"], ["Inimă de aur", "Mină de aur", "Izvor de aur", "Epoca de aur"]],
+      medalNext: [{"one": "Încă un dar până la „{2}”.", "few": "Încă {1} daruri până la „{2}”.", "other": "Încă {1} de daruri până la „{2}”."}, {"one": "Încă un dar secret până la „{2}”.", "few": "Încă {1} daruri secrete până la „{2}”.", "other": "Încă {1} de daruri secrete până la „{2}”."}, {"one": "Încă o Seva de aur dăruită până la „{2}”.", "few": "Încă {1} Seva de aur dăruite până la „{2}”.", "other": "Încă {1} Seva de aur dăruite până la „{2}”."}],
       gift: "Dăruiește", giftLang: "r", gifted: "Dăruit", givenTab: "Dăruite", giftFailed: "Nu am putut pregăti darul.", linkCopied: "Linkul darului a fost copiat.",
       giftAsk: "Tabloul va pleca din colecția ta și va rămâne doar amintirea lui. Pleacă într-un plic închis; cine îl primește îl deschide și, dacă are Seva, îl adaugă în colecția lui.\n\nÎn WhatsApp, așteaptă o clipă să apară plicul deasupra mesajului, apoi trimite.",
       giftAskNow: "Tabloul pleacă într-un plic închis; cine îl primește îl deschide și, dacă are Seva, îl adaugă în colecția lui. La tine rămâne doar amintirea lui.\n\nÎn WhatsApp, așteaptă o clipă să apară plicul deasupra mesajului, apoi trimite.",
@@ -203,6 +212,15 @@
       aboutVersion: "Browser version",
       fam: ["branches", "bubbles", "ribbons", "constellations", "mosaics", "cubes"],
       reg: ["", "neon colors", "pastels", "single-ink pieces", "colors that clash"],
+      medalsTab: "Medals",
+      medalsIntro: "Medals are earned by giving. Every piece that leaves your collection counts.",
+      medalNew: "New medal",
+      medalAt: "at {1}",
+      medalSince: "earned on {1}",
+      medalAll: "You have every medal here.",
+      medalLadders: ["Gifts", "Top secret", "Gold"],
+      medalNames: [["First envelope", "Part-time postman", "Art courier", "Open hand", "Generous by trade", "Official supplier of joy", "Legend of the post", "Minister of joy"], ["Confidant", "Accomplice", "Secret agent", "Double agent", "Master of disguise", "Spymaster", "Grey eminence", "State secret"], ["Heart of gold", "Gold mine", "Golden spring", "Golden age"]],
+      medalNext: [{"one": "One more gift to reach \"{2}\".", "other": "{1} more gifts to reach \"{2}\"."}, {"one": "One more secret gift to reach \"{2}\".", "other": "{1} more secret gifts to reach \"{2}\"."}, {"one": "One more gifted Golden Seva to reach \"{2}\".", "other": "{1} more gifted Golden Seva to reach \"{2}\"."}],
       gift: "Give", giftLang: "e", gifted: "Given", givenTab: "Given", giftFailed: "Could not prepare the gift.", linkCopied: "The gift link has been copied.",
       giftAsk: "The piece will leave your collection and only its memory will remain. It travels in a sealed envelope; whoever receives it opens it and, if they have Seva, adds it to their collection.\n\nIn WhatsApp, wait a moment for the envelope to appear above the message, then send.",
       giftAskNow: "The piece travels in a sealed envelope; whoever receives it opens it and, if they have Seva, adds it to their collection. Only its memory stays with you.\n\nIn WhatsApp, wait a moment for the envelope to appear above the message, then send.",
@@ -658,6 +676,7 @@
         p.giftedAt = Date.now();
         Store.update(p);
         done();
+        Medals.later();
       }, function (e) { undo(); toast(T.giftFailed); if (window.console) console.error(e); });
     } });
   }
@@ -1166,10 +1185,11 @@
 
   var grid = $("grid"), gridWrap = $("grid-wrap"), colEmpty = $("col-empty");
   $("col-back").textContent = T.back;
-  var tabKept = $("tab-kept"), tabGiven = $("tab-given"), givenTab = false;
-  tabKept.textContent = T.collection; tabGiven.textContent = T.givenTab;
-  tabKept.addEventListener("click", function () { givenTab = false; onShow.collection(); });
-  tabGiven.addEventListener("click", function () { givenTab = true; onShow.collection(); });
+  var tabKept = $("tab-kept"), tabGiven = $("tab-given"), tabMedals = $("tab-medals"), medalsBox = $("medals"), givenTab = false, medalsTab = false;
+  tabKept.textContent = T.collection; tabGiven.textContent = T.givenTab; tabMedals.textContent = T.medalsTab;
+  tabKept.addEventListener("click", function () { givenTab = false; medalsTab = false; onShow.collection(); });
+  tabGiven.addEventListener("click", function () { givenTab = true; medalsTab = false; onShow.collection(); });
+  tabMedals.addEventListener("click", function () { givenTab = false; medalsTab = true; onShow.collection(); });
   /** Miniatura unui tablou nu mai e bună (a fost șters sau a plecat în dar). */
   function forget(id) {
     [id, id + "-d"].forEach(function (k) { if (thumbs[k]) { try { URL.revokeObjectURL(thumbs[k]); } catch (e) { } delete thumbs[k]; } });
@@ -1225,12 +1245,16 @@
   onShow.collection = function () {
     shown = Store.list();
     var given = givenTab, list = given ? Store.given() : shown;
-    tabKept.classList.toggle("on", !given); tabGiven.classList.toggle("on", given);
+    tabKept.classList.toggle("on", !given && !medalsTab); tabGiven.classList.toggle("on", given); tabMedals.classList.toggle("on", medalsTab);
     colEmpty.textContent = given ? T.givenEmpty : T.collectionEmpty;
-    colEmpty.hidden = list.length > 0;
+    colEmpty.hidden = list.length > 0 || medalsTab;
     grid.textContent = "";
+    grid.hidden = medalsTab; medalsBox.hidden = !medalsTab;
     jobs = [];
     if (watcher) watcher.disconnect();
+    Medals.later();
+    if (medalsTab) { gridWrap.scrollTop = 0; Medals.build(medalsBox); return; }
+    medalsBox.textContent = "";
     watcher = window.IntersectionObserver ? new IntersectionObserver(function (entries) {
       entries.forEach(function (en) {
         if (!en.isIntersecting) return;
@@ -1257,7 +1281,7 @@
     });
     work();
   };
-  $("col-back").addEventListener("click", function () { givenTab = false; go("board"); });
+  $("col-back").addEventListener("click", function () { givenTab = false; medalsTab = false; go("board"); });
 
   // ================================================================ focul unui gând top secret (Burn.kt)
   //
@@ -1865,6 +1889,7 @@
       list = o.pieces.map(fromAndroid);
     } catch (e) { return -1; }
     var n = Store.addMissing(list);
+    Medals.resync();
     // darul de bun venit și treptele deja primite vin și ele (Rarity.importJson)
     var r = o.rarity, int = function (k) { return parseInt(Store.get("seva." + k) || "0", 10) || 0; };
     if (r && typeof r === "object") {
@@ -2071,6 +2096,243 @@
   buildAbout();
   onShow.about = function () { aboutBox.scrollTop = 0; paintAbout(); };
 
+  // ================================================================ medaliile pentru dăruit (Medals.kt)
+  //
+  // Trei scări de sigilii de ceară: Daruri (toate tablourile plecate din colecție), Top secret (darurile cu gând secret)
+  // și Aur (câte Seva de aur au fost dăruite). Sunt doar distincții. Nimic nu se ține separat: medaliile se socotesc din
+  // urmele darurilor, iar data unei medalii e data darului care a trecut pragul. Se ține minte doar care au fost sărbătorite.
+
+  var Medals = (function () {
+    var GIFTS = 0, SECRET = 1, GOLD = 2;
+    var STEPS = [[1, 5, 15, 30, 60, 120, 250, 500], [1, 4, 10, 25, 50, 100, 200, 400], [1, 3, 7, 12]], LETTER = ["g", "s", "a"];
+    var all = [];
+    STEPS.forEach(function (steps, ladder) {
+      steps.forEach(function (threshold, k) { all.push({ id: LETTER[ladder] + (k + 1), ladder: ladder, step: k + 1, threshold: threshold, name: T.medalNames[ladder][k] }); });
+    });
+    var WAX = [
+      [0xA63A2B, 0x8E2F3A, 0x9A6A3A, 0xB5814A, 0x98A0AC, 0xC3CAD4, 0xD4A93C, 0xE9C65E],
+      [0x2E2D34, 0x2E2D34, 0x2E2D34, 0x2E2D34, 0x2E2D34, 0x2E2D34, 0x2E2D34, 0x2E2D34],
+      [0xB8923E, 0xC9A247, 0xDDB650, 0xEFCB62]
+    ];
+    // pe scara secretă ceara rămâne neagră, iar semnul urcă de la cenușiu, prin bronz, argint și roșu de tuș, până la aur
+    var SECRET_MARK = [0x8A90A3, 0xA9AFBD, 0xB5814A, 0xC5CCD6, 0xC4483A, 0xC9A85A, 0xF1DC96, 0xFFF8E0];
+    var ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII"];
+    var SERIF = "Georgia, 'Times New Roman', serif";
+
+    function mix(a, b, t) {
+      var ch = function (x, y) { return Math.max(0, Math.min(255, Math.trunc(x + (y - x) * t))); };
+      return (ch((a >> 16) & 255, (b >> 16) & 255) << 16) | (ch((a >> 8) & 255, (b >> 8) & 255) << 8) | ch(a & 255, b & 255);
+    }
+    function col(rgb, a) { return "rgba(" + ((rgb >> 16) & 255) + "," + ((rgb >> 8) & 255) + "," + (rgb & 255) + "," + (a === undefined ? 1 : a) + ")"; }
+    function hash(s) { var h = 0; for (var i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0; return h; }
+
+    /** Momentele darurilor, în ordinea în care au plecat, pe fiecare scară. */
+    function times(pieces) {
+      var given = pieces.filter(function (p) { return !!p.giftedAt; }).sort(function (a, b) { return a.giftedAt - b.giftedAt; });
+      var at = function (p) { return p.giftedAt; };
+      return [given.map(at), given.filter(function (p) { return p.secret && p.note != null; }).map(at),
+        given.filter(function (p) { return p.gen >= 4 && Seva.tierOf(p.seed) === 3; }).map(at)];
+    }
+    /** Când a fost câștigată medalia (darul care a trecut pragul), sau null dacă încă nu. */
+    function earnedAt(m, t) { var v = t[m.ladder][m.threshold - 1]; return v === undefined ? null : v; }
+    function seen() { try { return JSON.parse(Store.get("seva.medals_seen") || "[]") || []; } catch (e) { return []; } }
+    /** Medaliile câștigate și încă nesărbătorite; le și trece ca sărbătorite. Prima oară, cele deja meritate se trec în tăcere. */
+    function fresh() {
+      var t = times(Store.all()), earned = all.filter(function (m) { return earnedAt(m, t) !== null; }), have = seen();
+      var add = function (list) { list.forEach(function (m) { if (have.indexOf(m.id) < 0) have.push(m.id); }); Store.set("seva.medals_seen", JSON.stringify(have)); };
+      if (Store.get("seva.medals_init") !== "1") { Store.set("seva.medals_init", "1"); add(earned); return []; }
+      var now = earned.filter(function (m) { return have.indexOf(m.id) < 0; });
+      if (now.length) add(now);
+      return now;
+    }
+
+    /**
+     * Un sigiliu de ceară: margine ușor neregulată, mijlocul apăsat, cu semnul scării (plic, gaura cheii, picătură)
+     * și treapta în cifre romane. Necâștigat, e doar o urmă cenușie.
+     */
+    function drawSeal(c, cx, cy, r, m, earned) {
+      var wax = earned ? WAX[m.ladder][m.step - 1] : 0x2B2A31;
+      var bright = ((wax >> 16) & 255) * 0.299 + ((wax >> 8) & 255) * 0.587 + (wax & 255) * 0.114 > 140;
+      var mark = !earned ? 0x4A4850 : m.ladder === SECRET ? SECRET_MARK[m.step - 1] : bright ? mix(wax, 0x000000, 0.62) : mix(wax, 0xFFFFFF, 0.72);
+      var k, a, TAU = 6.2832;
+      // marginea: ceara curge puțin altfel la fiecare sigiliu
+      var phase = (hash(m.id) & 0xFF) / 255 * 6.28;
+      var blob = function () {
+        c.beginPath();
+        for (k = 0; k <= 72; k++) {
+          a = k / 72 * TAU;
+          var rr = r * (1 + 0.035 * Math.sin(a * 5 + phase) + 0.022 * Math.sin(a * 9 + phase * 2.3));
+          if (k === 0) c.moveTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); else c.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr);
+        }
+        c.closePath();
+      };
+      if (earned) { c.save(); c.translate(r * 0.05, r * 0.08); blob(); c.fillStyle = "rgba(0,0,0,0.333)"; c.fill(); c.restore(); }
+      blob(); c.fillStyle = col(wax); c.fill();
+      // la treptele de sus (aurul de la a treia, vârfurile celorlalte scări), perle mici de jur împrejur
+      var top = m.ladder === GOLD && m.step >= 3 || m.ladder !== GOLD && m.step === 8;
+      if (earned && top) {
+        c.fillStyle = col(m.ladder === SECRET ? mark : mix(wax, 0xFFFFFF, 0.4));
+        var n = m.ladder === GOLD && m.step === 4 ? 24 : 16;
+        for (k = 0; k < n; k++) { a = k / n * TAU; c.beginPath(); c.arc(cx + Math.cos(a) * r * 0.88, cy + Math.sin(a) * r * 0.88, r * 0.035, 0, TAU); c.fill(); }
+      }
+      // mijlocul apăsat
+      c.fillStyle = earned ? col(mix(wax, 0x000000, 0.14)) : "#26252B";
+      c.beginPath(); c.arc(cx, cy, r * 0.76, 0, TAU); c.fill();
+      c.lineWidth = Math.max(1, r * 0.035); c.strokeStyle = col(mark, earned ? 0xB0 / 255 : 1);
+      c.beginPath(); c.arc(cx, cy, r * 0.76, 0, TAU); c.stroke();
+      if (earned && (m.ladder === GOLD && m.step >= 2 || m.step >= 7)) {
+        // un al doilea cerc, fin, la sigiliile de preț
+        c.lineWidth = Math.max(1, r * 0.018);
+        c.beginPath(); c.arc(cx, cy, r * 0.68, 0, TAU); c.stroke();
+      }
+      // semnul scării
+      c.lineCap = "round"; c.lineJoin = "round";
+      c.strokeStyle = col(mark); c.fillStyle = col(mark);
+      var sy = cy - r * 0.1;
+      if (m.ladder === GIFTS) {
+        c.lineWidth = Math.max(1, r * 0.055);
+        c.strokeRect(cx - r * 0.34, sy - r * 0.22, r * 0.68, r * 0.44);
+        c.beginPath(); c.moveTo(cx - r * 0.34, sy - r * 0.22); c.lineTo(cx, sy + r * 0.04); c.lineTo(cx + r * 0.34, sy - r * 0.22); c.stroke();
+      } else if (m.ladder === SECRET) {
+        c.beginPath(); c.arc(cx, sy - r * 0.1, r * 0.15, 0, TAU); c.fill();
+        c.beginPath(); c.moveTo(cx - r * 0.07, sy - r * 0.02); c.lineTo(cx + r * 0.07, sy - r * 0.02);
+        c.lineTo(cx + r * 0.14, sy + r * 0.26); c.lineTo(cx - r * 0.14, sy + r * 0.26); c.closePath(); c.fill();
+      } else {
+        c.beginPath(); c.moveTo(cx, sy - r * 0.36);
+        c.quadraticCurveTo(cx + r * 0.06, sy - r * 0.08, cx + r * 0.2, sy + r * 0.1);
+        c.lineTo(cx - r * 0.2, sy + r * 0.1);
+        c.quadraticCurveTo(cx - r * 0.06, sy - r * 0.08, cx, sy - r * 0.36);
+        c.closePath(); c.fill();
+        c.beginPath(); c.arc(cx, sy + r * 0.11, r * 0.2, 0, TAU); c.fill();
+      }
+      // treapta
+      c.font = (r * 0.24) + "px " + SERIF; c.textAlign = "center"; c.textBaseline = "alphabetic";
+      c.fillStyle = col(mark, earned ? 0xE0 / 255 : 1);
+      c.fillText(ROMAN[m.step - 1], cx, cy + r * 0.56);
+      // o dâră de lumină pe ceară
+      if (earned) {
+        c.lineWidth = r * 0.05; c.strokeStyle = "rgba(255,255,255,0.235)";
+        c.beginPath(); c.arc(cx, cy, r * 0.86, 198 * Math.PI / 180, 250 * Math.PI / 180); c.stroke();
+      }
+    }
+
+    // ---- sigiliul mare: se apasă pe ecran (la câștigare) sau doar stă, cu numele și data lui. O atingere trece mai departe.
+
+    var box = $("stamp"), cv = $("stamp-seal"), label = $("stamp-label"), nameEl = $("stamp-name"), line = $("stamp-line");
+    var open = null;
+    function ladderTitle(l) { return T.medalLadders[l]; }
+    function begin() {
+      var m = open.list[open.index];
+      open.start = performance.now(); open.felt = false;
+      var W = window.innerWidth, H = window.innerHeight, d = ratio();
+      cv.width = Math.round(W * d); cv.height = Math.round(H * d);
+      open.W = W; open.H = H; open.cx = W / 2; open.cy = H * 0.42; open.r = Math.min(W, H) * 0.21;
+      label.textContent = (open.stamp ? T.medalNew : T.medalsTab).toUpperCase();
+      nameEl.textContent = m.name;
+      var text = ladderTitle(m.ladder) + " · " + m.threshold, at = earnedAt(m, open.times);
+      if (!open.stamp && at !== null) {
+        var day;
+        try { day = new Intl.DateTimeFormat(lang, { day: "numeric", month: "long", year: "numeric" }).format(new Date(at)); } catch (e) { day = new Date(at).toLocaleDateString(); }
+        text += "\n" + fmt(T.medalSince, day);
+      }
+      line.textContent = text;
+      label.style.top = (open.cy - open.r * 1.62 - 13) + "px";
+      nameEl.style.top = (open.cy + open.r * 1.72 - 27) + "px";
+      line.style.top = (open.cy + open.r * 1.72 + 16) + "px";
+      // numele încape pe un rând: dacă e prea lat, literele se micșorează
+      var size = 30;
+      nameEl.style.fontSize = size + "px";
+      while (nameEl.scrollWidth > W * 0.86 && size > 16) { size *= 0.94; nameEl.style.fontSize = size + "px"; }
+      frame();
+    }
+    function next() {
+      if (!open) return;
+      if (open.index < open.list.length - 1) { open.index++; begin(); }
+      else { open = null; box.hidden = true; cv.width = 0; }
+    }
+    function frame() {
+      if (!open) return;
+      var m = open.list[open.index], t = open.stamp ? (performance.now() - open.start) / 1000 : 10;
+      var c = cv.getContext("2d"), d = cv.width / open.W, cx = open.cx, cy = open.cy, r = open.r;
+      c.setTransform(d, 0, 0, d, 0, 0);
+      c.clearRect(0, 0, open.W, open.H);
+      // sigiliul coboară repede, lovește hârtia și se așază
+      var k = Math.max(0, Math.min(1, t / 0.22)), fall = k * k;
+      var scale = t < 0.22 ? 2.4 - 1.4 * fall : 0.93 + 0.07 * Math.max(0, Math.min(1, (t - 0.22) / 0.2));
+      c.save();
+      c.translate(cx, cy); c.rotate((-6 - (1 - fall) * 12) * Math.PI / 180); c.scale(scale, scale); c.translate(-cx, -cy);
+      drawSeal(c, cx, cy, r, m, true);
+      c.restore();
+      if (open.stamp && t >= 0.22 && !open.felt) { open.felt = true; try { if (navigator.vibrate) navigator.vibrate(18); } catch (e) { } }
+      // unda loviturii
+      if (open.stamp && t > 0.22 && t < 0.85) {
+        var w = (t - 0.22) / 0.63;
+        c.lineWidth = 2.2; c.strokeStyle = "rgba(242,230,207," + (0xA0 / 255 * (1 - w)) + ")";
+        c.beginPath(); c.arc(cx, cy, r * (1.05 + 1.25 * w), 0, 6.2832); c.stroke();
+      }
+      // cuvintele: apar după lovitură
+      var a = open.stamp ? Math.max(0, Math.min(1, (t - 0.45) / 0.4)) : 1;
+      label.style.opacity = nameEl.style.opacity = line.style.opacity = String(a);
+      if (!open.stamp) return;
+      if (t >= 4.2) next(); else requestAnimationFrame(frame);
+    }
+    function show(list, stamp) {
+      if (!list.length || open) return;
+      open = { list: list, index: 0, stamp: stamp, times: times(Store.all()) };
+      box.hidden = false;
+      begin();
+    }
+    box.addEventListener("click", function () { if (open && (!open.stamp || performance.now() - open.start > 700)) next(); });
+
+    function plural(forms, n) {
+      if (n === 1) return forms.one;
+      if (lang === "ro" && forms.few && (n === 0 || (n % 100 >= 1 && n % 100 <= 19))) return forms.few;
+      return forms.other;
+    }
+
+    return {
+      all: all, times: times, earnedAt: earnedAt,
+      opened: function () { return open ? open.list[open.index].id : null; },
+      /** După un import, medaliile deja meritate se trec fără ceremonie, ca la prima pornire. */
+      resync: function () { Store.set("seva.medals_init", "0"); },
+      /** De chemat când planșa sau colecția revin în față: dacă s-a câștigat o medalie, sigiliul ei se apasă pe ecran. */
+      celebrate: function () {
+        var view = document.body.getAttribute("data-view");
+        if (open || !modal.hidden || rv || (view !== "board" && view !== "collection")) return;
+        var list = fresh();
+        if (list.length) show(list, true);
+      },
+      /** După un dar: fereastra de partajare se închide întâi, apoi vine sigiliul. */
+      later: function () { setTimeout(function () { Medals.celebrate(); }, 450); },
+      /** Fila Medalii: cele trei scări de sigilii, cu numele lor; cele necâștigate, cenușii, cu pragul; sub fiecare, cât mai e până la următoarea. */
+      build: function (into) {
+        var t = times(Store.all()), d = ratio();
+        into.textContent = "";
+        into.appendChild(el("p", "intro", T.medalsIntro));
+        [GIFTS, SECRET, GOLD].forEach(function (l) {
+          var ladder = all.filter(function (m) { return m.ladder === l; }), count = t[l].length;
+          into.appendChild(el("h3", null, ladderTitle(l) + " · " + count));
+          var row = el("div", "seals");
+          ladder.forEach(function (m) {
+            var earned = earnedAt(m, t) !== null, cell = el("div", "seal" + (earned ? " earned" : "")), icon = document.createElement("canvas");
+            icon.width = icon.height = Math.round(66 * d);
+            var c = icon.getContext("2d");
+            c.setTransform(d, 0, 0, d, 0, 0);
+            drawSeal(c, 33, 33, 66 * 0.44, m, earned);
+            cell.appendChild(icon);
+            cell.appendChild(el("p", "name", m.name));
+            if (!earned) cell.appendChild(el("p", "at", fmt(T.medalAt, m.threshold)));
+            else { cell.setAttribute("role", "button"); cell.addEventListener("click", function () { show([m], false); }); }
+            row.appendChild(cell);
+          });
+          into.appendChild(row);
+          var nextOne = ladder.filter(function (m) { return earnedAt(m, t) === null; })[0];
+          into.appendChild(el("p", "next", nextOne ? fmt(plural(T.medalNext[l], nextOne.threshold - count), nextOne.threshold - count, nextOne.name) : T.medalAll));
+        });
+      }
+    };
+  })();
+
   // ================================================================ pornirea
 
   // pagina nu se mișcă, nu se mărește și nu își arată meniurile sub deget; doar colecția se derulează
@@ -2098,14 +2360,14 @@
   state();
   layout();
   // la întoarcerea pe planșă sau în pagină (poate într-o zi nouă): „În colecție” se aprinde, dacă între timp s-a făcut loc
-  onShow.board = function () { if (!rv) state(); };
-  document.addEventListener("visibilitychange", function () { if (!document.hidden && !rv) state(); });
+  onShow.board = function () { if (!rv) state(); Medals.later(); };
+  document.addEventListener("visibilitychange", function () { if (!document.hidden && !rv) state(); if (!document.hidden) Medals.later(); });
 
   // la prima deschidere: numele cu care vor fi semnate tablourile. Fără cont, fără verificare.
   // un dar deschis din pagina de dar (#g=COD) intră în colecție după aceea
   if (Store.author() === null) {
-    ask({ title: T.nameTitle, text: T.nameMessage, input: T.nameHint, ok: T.nameOk }).then(function (name) { Store.setAuthor(name || ""); takeHash(); });
-  } else takeHash();
+    ask({ title: T.nameTitle, text: T.nameMessage, input: T.nameHint, ok: T.nameOk }).then(function (name) { Store.setAuthor(name || ""); takeHash(); Medals.celebrate(); });
+  } else { takeHash(); Medals.celebrate(); }
 
   // pentru probele din afara telefonului
   window.SevaApp = {
@@ -2114,7 +2376,7 @@
     state: function () {
       return { view: document.body.getAttribute("data-view"), strokes: strokes.length, composed: composed, locked: locked, piece: piece,
         card: card, seed: String(seed), author: Store.author(), kept: Store.list().length, given: Store.given().length, thumbs: Object.keys(thumbs).length,
-        lang: lang, taste: Taste.load(), tasteN: Taste.count(), tasteSays: Taste.describe(), loose: loose, keptToday: Plan.keptToday(), giftedToday: Plan.giftedToday(), pending: !!Store.pending(),
+        medal: Medals.opened(), medalsSeen: Store.get("seva.medals_seen"), lang: lang, taste: Taste.load(), tasteN: Taste.count(), tasteSays: Taste.describe(), loose: loose, keptToday: Plan.keptToday(), giftedToday: Plan.giftedToday(), pending: !!Store.pending(),
         tier: Seva.tierOf(seed), revealing: rv ? rv.tier : 0, turned: turned, secret: secret ? (secret.fire ? "arde" : "numara") : null,
         viewing: shown[viewAt] ? { id: shown[viewAt].id, from: shown[viewAt].from, note: shown[viewAt].note, secret: shown[viewAt].secret, burned: shown[viewAt].burned, occasion: shown[viewAt].occasion } : null, ticketsLeft: Rarity.ticketsLeft(), often: Rarity.often() };
     }
