@@ -2140,10 +2140,76 @@
       tierLabel: piece.gen >= 4 ? (TIER_NAMES[lang] || TIER_NAMES.en)[tierOf(piece.seed)] : null });
   }
 
+  // ------------------------------------------------------------------ planșa de desen (Composer.renderBlank, Composer.distill)
+
+  /** Cartea goală, înainte de gest: aceeași ramă și aceeași hârtie pe care se va naște tabloul. Întoarce cerneala potrivită hârtiei. */
+  function renderBlank(cv, w, h, dp0, p) {
+    const dp = f(dp0);
+    const pl = plan(w, h, p);
+    const inner = innerRect(w, h, pl);
+    stroke.shader = null; fill.shader = null;
+    frameUnder(cv, w, h, dp, pl, p.seed);
+    cv.save();
+    cv.clipRect(inner.left, inner.top, inner.right, inner.bottom);
+    background(cv, inner, dp, pl.r, pl.pal, pl.texture);
+    cv.restore();
+    frameOver(cv, inner, dp, pl.pal, pl.doubleLine);
+    return ink(pl.pal);
+  }
+
+  /** Codec.q: un număr 0..1 pe grila 0..65535 (Math.round din Java: jumătățile urcă). */
+  const grid = (v) => Math.floor(f(coerce(f(v), 0, 1) * 65535) + 0.5);
+  /** Lumina și bateria, cum ajung în cod: 255 = necunoscut; altfel întâi pe 255 de trepte (Composer.q8), apoi pe 254 (Codec). */
+  const sense = (v) => (v === undefined || v === null || v < 0 ? 255 : coerce(trunc(mul(f(trunc(mul(coerce(f(v), 0, 1), 255)) / 255), 254)), 0, 254));
+
+  /**
+   * Din gesturile brute, esența lor, ca Composer.distill: fiecare formă netezită și reeșantionată pe grila codului,
+   * plus cât de agitat și cât de lent a fost totul.
+   * raw: [{ points: [{x, y}...], times: [milisecunde întregi...] }], în coordonatele cărții de w pe h.
+   * Întoarce forma din cod: { strokes: [[[x, y]...]...] pe grila 0..65535, nervous și slow 0..255, light și battery 0..254 sau 255 }.
+   */
+  function distill(raw, w, h, light, battery) {
+    const usable = [];
+    for (const st of raw) {
+      if (st.points.length >= 2) usable.push(st);
+      else if (st.points.length === 1) {
+        // un singur punct e tot un gest, cel mai mic: un mugur scurt, în sus, exact unde s-a atins
+        const q = st.points[0], t0 = st.times.length ? st.times[0] : 0;
+        usable.push({ points: [pt(f(q.x), add(q.y, mul(h, 0.015))), pt(f(q.x), sub(q.y, mul(h, 0.015)))], times: [t0, t0 + 150] });
+      }
+    }
+    if (usable.length === 0) {
+      const pts = [];
+      for (let i = 0; i <= 20; i++) { const t = div(i, 20); pts.push([grid(add(0.5, mul(sin(mul(t, 3.1416)), 0.04))), grid(sub(0.78, mul(t, 0.56)))]); }
+      return { strokes: [pts], nervous: 25, slow: 127, light: sense(light), battery: sense(battery) };
+    }
+    let turn = 0, len = 0, dur = 0;
+    const strokes = [], TWO_PI = F(2 * Math.PI);
+    for (const s of usable) {
+      let pts = s.points.map((q) => pt(div(q.x, w), div(q.y, h)));
+      for (let i = 2; i < pts.length; i++) {
+        const a1 = atan2(sub(pts[i - 1].y, pts[i - 2].y), sub(pts[i - 1].x, pts[i - 2].x));
+        const a2 = atan2(sub(pts[i].y, pts[i - 1].y), sub(pts[i].x, pts[i - 1].x));
+        let da = sub(a2, a1);
+        while (da > Math.PI) da = sub(da, TWO_PI);
+        while (da < -Math.PI) da = add(da, TWO_PI);
+        turn = add(turn, Math.abs(da));
+      }
+      len = add(len, length(pts));
+      dur = add(dur, f(Math.max(1, Math.round(s.times[s.times.length - 1]) - Math.round(s.times[0])) / 1000));
+      for (let k = 0; k < 3; k++) pts = chaikin(pts);
+      strokes.push(resample(pts, 60).map((q) => [grid(q.x), grid(q.y)]));
+    }
+    // temperamentul pe aceeași scară ca în cod (0..255)
+    const nervous = trunc(mul(Math.min(1, div(div(turn, Math.max(len, F(0.05))), 40)), 255));
+    const slow = trunc(mul(Math.min(1, div(div(dur, Math.max(len, F(0.05))), 6)), 255));
+    return { strokes, nervous, slow, light: sense(light), battery: sense(battery) };
+  }
+
   return { Random, colorToHSV, HSVToColor, blend, withAlpha, hex, Palette, pickPalette, plan, innerRect, fit, layout, paramsFromCase, planInfo,
     render, ink, Path, Recorder, Canvas2D, NullCanvas,
     renderEnvelope, decode, signature, paramsFromPiece, CODE_VERSION, GEN, SHEET,
     renderBack, stampFor, stampDate, renderEnvelopePal,
-    tierOf,
+    tierOf, renderBlank, distill,
     ARMONIE, NEON, PASTEL, TUS, BRUT, REGISTERS, _internals: { f, F, hsv, luminance, contrast, mix, generate, wobble } };
 });
