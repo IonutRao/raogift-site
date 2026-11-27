@@ -54,6 +54,7 @@ body[data-view="board"] #v-board, body[data-view="collection"] #v-collection, bo
 .btn:active { background:#D9CDB6; }
 .btn.soft { background:transparent; color:var(--pale); border:1.2px solid var(--line); }
 .btn.soft:active { background:#2A2930; }
+.btn.dim { opacity:.45; }
 /* trei butoane care își împart rândul */
 .btn.third { flex:1 1 0; min-width:0; margin:0 5px; padding:0 8px; font-size:15px; max-width:220px; }
 

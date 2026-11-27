@@ -12,7 +12,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "probă 5";
+  var BUILD = "probă 6";
   var lang = /^ro\b/i.test(navigator.language || "ro") ? "ro" : "en";
   var T = {
     ro: {
@@ -23,6 +23,11 @@
       backToBoard: "Înapoi la planșă", tier0: "Tablou simplu", choiceKept: "%s. E în colecția ta.",
       tiers: [null, "Piesă rară", "Piesă de colecție", "Seva de aur"], rareFound: "Un tablou rar și-a găsit rama.", goldSub: "cel mai rar dintre tablouri",
       often: "rare des",
+      toCollection: "În colecție", kept: "Adăugată în colecție", choiceLoose: "%s. Păstrezi tabloul sau îl dăruiești?", choiceFull: "%s. Azi mai poți doar să dăruiești.",
+      leftToday: "Azi mai poți păstra: %d.", giftedLeft: "A plecat în dar. Azi mai poți dărui pe loc: %d.",
+      limitTitle: "Atât pe azi", limitFree: "Azi ai păstrat cinci tablouri și ai dăruit pe loc alte cinci. Mâine poți din nou; de încercat poți încerca în continuare oricât.",
+      fullTitle: "Colecția de azi e plină", fullText: "Azi ai păstrat deja cinci tablouri. Pe acesta îl poți dărui.", fullDrop: "Renunț la tablou",
+      collectorLater: "Abonamentul de colecționar, cu care păstrezi și dăruiești fără limită, va veni odată cu aplicația Seva pentru iPhone.",
       gift: "Dăruiește", giftLang: "r", gifted: "Dăruit", givenTab: "Dăruite", giftFailed: "Nu am putut pregăti darul.", linkCopied: "Linkul darului a fost copiat.",
       giftAsk: "Tabloul va pleca din colecția ta și va rămâne doar amintirea lui. Pleacă într-un plic închis; cine îl primește îl deschide și, dacă are Seva, îl adaugă în colecția lui.\n\nÎn WhatsApp, așteaptă o clipă să apară plicul deasupra mesajului, apoi trimite.",
       giftAskNow: "Tabloul pleacă într-un plic închis; cine îl primește îl deschide și, dacă are Seva, îl adaugă în colecția lui. La tine rămâne doar amintirea lui.\n\nÎn WhatsApp, așteaptă o clipă să apară plicul deasupra mesajului, apoi trimite.",
@@ -50,6 +55,11 @@
       backToBoard: "Back to the board", tier0: "Plain piece", choiceKept: "%s. It is in your collection.",
       tiers: [null, "Rare piece", "Collector's piece", "Golden Seva"], rareFound: "A rare piece has found its frame.", goldSub: "the rarest of all pieces",
       often: "rare often",
+      toCollection: "To collection", kept: "Added to your collection", choiceLoose: "%s. Keep the piece or give it away?", choiceFull: "%s. Today you can only give it away.",
+      leftToday: "You can still keep today: %d.", giftedLeft: "Gift sent. You can still give on the spot today: %d.",
+      limitTitle: "That's all for today", limitFree: "Today you kept five pieces and gave five more away on the spot. Tomorrow you can again; you can go on trying as many images as you like.",
+      fullTitle: "Today's collection is full", fullText: "You have already kept five pieces today. You can give this one away.", fullDrop: "Let it go",
+      collectorLater: "The collector subscription, which lets you keep and give without limit, will come with the Seva app for iPhone.",
       gift: "Give", giftLang: "e", gifted: "Given", givenTab: "Given", giftFailed: "Could not prepare the gift.", linkCopied: "The gift link has been copied.",
       giftAsk: "The piece will leave your collection and only its memory will remain. It travels in a sealed envelope; whoever receives it opens it and, if they have Seva, adds it to their collection.\n\nIn WhatsApp, wait a moment for the envelope to appear above the message, then send.",
       giftAskNow: "The piece travels in a sealed envelope; whoever receives it opens it and, if they have Seva, adds it to their collection. Only its memory stays with you.\n\nIn WhatsApp, wait a moment for the envelope to appear above the message, then send.",
@@ -203,7 +213,36 @@
         if (burnt.indexOf(p.id) < 0) { burnt.push(p.id); set("seva.burned", JSON.stringify(burnt)); }
       },
       add: function (p) { load(); if (pieces.some(function (x) { return x.id === p.id; })) return false; pieces.unshift(p); save(); return true; },
+      /** Tabloul dezvăluit care își așteaptă darul (colecția zilei era plină): ținut minte, ca o ieșire din pagină să nu-l piardă. */
+      pending: function () { try { var s = get("seva.pending"); return s ? unpack(JSON.parse(s)) : null; } catch (e) { return null; } },
+      setPending: function (p) { set("seva.pending", p ? JSON.stringify(pack(p)) : ""); },
       remove: function (id) { load(); pieces = pieces.filter(function (x) { return x.id !== id; }); save(); }
+    };
+  })();
+
+  // ================================================================ regula păstrării (Plan.kt)
+  //
+  // Încerci oricât; păstrezi cinci tablouri pe zi. Pe lângă ele, cinci pe zi pot fi dăruite pe loc, de pe planșă, fără să
+  // ocupe un loc din cele cinci păstrate. Primirea și dăruirea din colecție sunt mereu libere. În pagina din browser nu
+  // există abonament: colecționarii vin odată cu aplicația din App Store, unde plata se face prin Apple.
+
+  var Plan = (function () {
+    var FREE_PER_DAY = 5, FREE_GIFTS_PER_DAY = 5;
+    function today() { var d = new Date(), two = function (x) { return String(x).padStart(2, "0"); }; return "" + d.getFullYear() + two(d.getMonth() + 1) + two(d.getDate()); }
+    function count(what) { return Store.get("seva." + what + "_day") === today() ? (parseInt(Store.get("seva." + what + "_count") || "0", 10) || 0) : 0; }
+    function put(what, n) { Store.set("seva." + what + "_day", today()); Store.set("seva." + what + "_count", String(n)); }
+    return {
+      FREE_PER_DAY: FREE_PER_DAY, FREE_GIFTS_PER_DAY: FREE_GIFTS_PER_DAY,
+      keptToday: function () { return count("kept"); },
+      leftToday: function () { return Math.max(0, FREE_PER_DAY - count("kept")); },
+      canKeep: function () { return FREE_PER_DAY - count("kept") > 0; },
+      recordKeep: function () { put("kept", count("kept") + 1); },
+      /** Un tablou păstrat și apoi dăruit pe loc își dă locul înapoi: nu a rămas în colecție. */
+      refundKeep: function () { var n = count("kept"); if (n > 0) put("kept", n - 1); },
+      giftedToday: function () { return count("gifted"); },
+      giftsLeftToday: function () { return Math.max(0, FREE_GIFTS_PER_DAY - count("gifted")); },
+      canGiftNow: function () { return FREE_GIFTS_PER_DAY - count("gifted") > 0; },
+      recordGift: function () { put("gifted", count("gifted") + 1); }
     };
   })();
 
@@ -409,6 +448,7 @@
   var pointer = null;          // degetul care desenează; celelalte nu contează
   var composed = false;
   var locked = false;          // după Păstrează, planșa stă pe loc până la „Înapoi la planșă”
+  var loose = false;           // colecția zilei era plină la Păstrează: tabloul nu a intrat în colecție și poate doar pleca în dar
   var piece = null;            // tabloul compus acum
   var lastStamp;
   var seed = newSeed();
@@ -576,12 +616,17 @@
     btn.keep.hidden = btn.another.hidden = btn.again.hidden = !(composed && !locked);
     btn.backBoard.hidden = btn.give.hidden = !locked || !!rv;
     var tier = locked && piece ? Seva.tierOf(piece.seed) : 0;
-    hint.textContent = rv ? T.rareFound : locked ? T.choiceKept.replace("%s", T.tiers[tier] || T.tier0) : composed ? T.hintComposed : (n === 0 ? "\u00a0" : T.hintMore);
+    // un tablou păstrat e deja în colecție: se spune limpede. Doar când colecția zilei era plină mai e ceva de hotărât.
+    var full = locked && loose && !Plan.canKeep();
+    btn.backBoard.textContent = locked && loose ? T.toCollection : T.backToBoard;
+    btn.backBoard.classList.toggle("dim", full);
+    var choice = full ? T.choiceFull : loose ? T.choiceLoose : T.choiceKept;
+    hint.textContent = rv ? T.rareFound : locked ? choice.replace("%s", T.tiers[tier] || T.tier0) : composed ? T.hintComposed : (n === 0 ? "\u00a0" : T.hintMore);
     hint.classList.toggle("none", n === 0 && !composed);
   }
 
   function startNew() {
-    composed = false; locked = false; piece = null;
+    composed = false; locked = false; piece = null; loose = false;
     strokes = []; current = null;
     seed = newSeed();
     state();
@@ -613,20 +658,52 @@
   btn.again.addEventListener("click", startNew);
   btn.keep.addEventListener("click", function () {      // Păstrează: tabloul intră în colecție și planșa îl ține la vedere
     if (!composed || !piece || locked) return;
-    // raritatea se află abia acum; tabloul intră în colecție înainte de orice efect, ca nimic să nu-l poată pierde
+    var canKeep = Plan.canKeep();
+    if (!canKeep && !Plan.canGiftNow()) {
+      ask({ title: T.limitTitle, text: T.limitFree + "\n\n" + T.collectorLater, ok: T.back });
+      return;
+    }
+    // raritatea se află abia acum. Cât mai e loc în colecția zilei, tabloul intră în ea înainte de orice efect, ca nimic
+    // să nu-l poată pierde; dacă apoi e dăruit pe loc, își dă locul înapoi. Când colecția zilei e plină, ia un loc dintre daruri.
     var tier = Seva.tierOf(piece.seed);
-    Store.add(piece);
+    if (canKeep) { Store.add(piece); Plan.recordKeep(); }
+    else { Plan.recordGift(); Store.setPending(piece); }
+    loose = !canKeep;
     Rarity.onKeep(tier);
     if (tier === 0) { locked = true; state(); repaint(); }
     else reveal(tier, T.tiers[tier], tier === 3 ? T.goldSub : "", function () { state(); invalidate(); });
   });
-  btn.backBoard.addEventListener("click", startNew);
+  /** Alegerea s-a încheiat: planșa e din nou goală. */
+  function done() { Store.setPending(null); startNew(); }
+  /** Un tablou păstrat la Păstrează mai e la locul lui? (între timp putea fi șters sau dăruit din colecție) */
+  function stillKept(p) { return Store.list().some(function (x) { return x.id === p.id; }); }
+  btn.backBoard.addEventListener("click", function () {  // „Înapoi la planșă”, sau „În colecție” când colecția zilei era plină
+    var p = piece;
+    if (!p || !locked || rv) return;
+    if (!loose) {
+      // tabloul e de la Păstrează în colecție; omul află câte mai poate păstra azi
+      if (stillKept(p)) toast(T.leftToday.replace("%d", Plan.leftToday()));
+      done();
+    } else if (Plan.canKeep()) {
+      // între timp s-a făcut loc (o zi nouă)
+      Store.add(p); Plan.recordKeep();
+      toast(T.kept);
+      done();
+    } else {
+      ask({ title: T.fullTitle, text: T.fullText + "\n\n" + T.collectorLater, ok: T.back, cancel: T.fullDrop }).then(function (v) { if (v === null) done(); });
+    }
+  });
   btn.give.addEventListener("click", function () {      // darul de pe planșă, imediat după ce tabloul și-a arătat treapta
     var p = piece;
     if (!p || !locked || rv) return;
-    // între timp putea fi șters sau dăruit din colecție
-    if (!Store.list().some(function (x) { return x.id === p.id; })) { startNew(); return; }
-    giveAway(p, true, function () { forget(p.id); startNew(); });
+    var wasLoose = loose;
+    if (!wasLoose && !stillKept(p)) { done(); return; }
+    giveAway(p, true, function () {
+      // darul de pe planșă nu ocupă un loc din colecția zilei, cât timp mai sunt daruri pe azi
+      if (!wasLoose && Plan.canGiftNow()) { Plan.refundKeep(); Plan.recordGift(); }
+      toast(T.giftedLeft.replace("%d", Plan.giftsLeftToday()));
+      forget(p.id); done();
+    });
   });
   $("to-collection").addEventListener("click", function () { go("collection"); });
 
@@ -1459,8 +1536,17 @@
   } else window.addEventListener("resize", function () { layout(); if (document.body.getAttribute("data-view") === "viewer") drawViewer(); });
   window.addEventListener("orientationchange", function () { setTimeout(layout, 250); });
   paintBuild();
+  // un tablou dezvăluit care își aștepta darul când pagina a fost închisă: alegerea se reia de unde a rămas
+  (function () {
+    var p = Store.pending();
+    if (!p) return;
+    piece = p; seed = p.seed; strokes = []; composed = true; locked = true; loose = true;
+  })();
   state();
   layout();
+  // la întoarcerea pe planșă sau în pagină (poate într-o zi nouă): „În colecție” se aprinde, dacă între timp s-a făcut loc
+  onShow.board = function () { if (!rv) state(); };
+  document.addEventListener("visibilitychange", function () { if (!document.hidden && !rv) state(); });
 
   // la prima deschidere: numele cu care vor fi semnate tablourile. Fără cont, fără verificare.
   // un dar deschis din pagina de dar (#g=COD) intră în colecție după aceea
@@ -1473,6 +1559,7 @@
     state: function () {
       return { view: document.body.getAttribute("data-view"), strokes: strokes.length, composed: composed, locked: locked, piece: piece,
         card: card, seed: String(seed), author: Store.author(), kept: Store.list().length, given: Store.given().length, thumbs: Object.keys(thumbs).length,
+        loose: loose, keptToday: Plan.keptToday(), giftedToday: Plan.giftedToday(), pending: !!Store.pending(),
         tier: Seva.tierOf(seed), revealing: rv ? rv.tier : 0, turned: turned, secret: secret ? (secret.fire ? "arde" : "numara") : null,
         viewing: shown[viewAt] ? { id: shown[viewAt].id, from: shown[viewAt].from, note: shown[viewAt].note, secret: shown[viewAt].secret, burned: shown[viewAt].burned, occasion: shown[viewAt].occasion } : null, ticketsLeft: Rarity.ticketsLeft(), often: Rarity.often() };
     }
