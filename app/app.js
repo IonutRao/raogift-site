@@ -4,13 +4,13 @@
  * Tabloul îl desenează ../g/seva.js, același cod care arată darurile în browser și care e ținut, formă cu formă, la fel cu
  * aplicația de Android. Aici e doar ce ține de ecran și de telefon: urma degetului, butoanele, colecția păstrată local.
  *
- * Făcut până acum: planșa (proba 1), Păstrează, numele semnatarului și colecția (proba 2).
- * Urmează, pe rând: raritatea, limita zilei, darurile, preferințele, Despre, sunetele.
+ * Făcut până acum: planșa (proba 1), Păstrează, numele semnatarului și colecția (proba 2), raritatea cu momentul ei (proba 3).
+ * Urmează, pe rând: darurile, limita zilei și abonamentul, preferințele, Despre, sunetele.
  */
 (function () {
   "use strict";
 
-  var BUILD = "probă 2";
+  var BUILD = "probă 3";
   var lang = /^ro\b/i.test(navigator.language || "ro") ? "ro" : "en";
   var T = {
     ro: {
@@ -19,6 +19,8 @@
       hintComposed: "Același gest poate da și alt tablou.",
       compose: "Compune", clear: "Reia", keep: "Păstrează", another: "Alt tablou", again: "Gest nou",
       backToBoard: "Înapoi la planșă", tier0: "Tablou simplu", choiceKept: "%s. E în colecția ta.",
+      tiers: [null, "Piesă rară", "Piesă de colecție", "Seva de aur"], rareFound: "Un tablou rar și-a găsit rama.", goldSub: "cel mai rar dintre tablouri",
+      often: "rare des",
       collection: "Colecția", back: "Înapoi", del: "Șterge", cancel: "Renunță",
       collectionEmpty: "Colecția e goală deocamdată. Primul tablou te așteaptă pe ecranul de desen.",
       deleteAsk: "Ștergi tabloul din colecție?",
@@ -33,6 +35,8 @@
       hintComposed: "The same gesture can become another piece.",
       compose: "Compose", clear: "Clear", keep: "Keep", another: "Another", again: "New gesture",
       backToBoard: "Back to the board", tier0: "Plain piece", choiceKept: "%s. It is in your collection.",
+      tiers: [null, "Rare piece", "Collector's piece", "Golden Seva"], rareFound: "A rare piece has found its frame.", goldSub: "the rarest of all pieces",
+      often: "rare often",
       collection: "Collection", back: "Back", del: "Delete", cancel: "Cancel",
       collectionEmpty: "Your collection is empty for now. The first piece is waiting on the drawing screen.",
       deleteAsk: "Remove this piece from your collection?",
@@ -97,6 +101,7 @@
     function save() { set("seva.pieces", JSON.stringify(pieces.map(pack))); }
 
     return {
+      get: get, set: set,
       /** Numele semnatarului; null cât timp nu a fost întrebat. */
       author: function () { return get("seva.author"); },
       setAuthor: function (name) { set("seva.author", String(name).trim()); },
@@ -134,6 +139,59 @@
     return s;
   }
 
+  // ================================================================ raritatea (Rarity.kt)
+  //
+  // Raritatea rămâne a seminței (Seva.tierOf). Aici se hotărăște doar ce treaptă să poarte sămânța tabloului compus:
+  // darul de bun venit (câte unul din fiecare treaptă în primele zece păstrate), apoi norocul zilei, de cel mult zece ori pe zi.
+  // Garanția colecționarului vine odată cu abonamentul.
+
+  var Rarity = (function () {
+    var TICKETS = 10, P_GOLD = 0.02, P_COLLECTOR = 0.06, P_RARE = 0.20;
+    var int = function (k) { return parseInt(Store.get("seva." + k) || "0", 10) || 0; };
+    var flag = function (k) { return Store.get("seva." + k) === "1"; };
+    function today() { var d = new Date(), two = function (x) { return String(x).padStart(2, "0"); }; return d.getFullYear() + "-" + two(d.getMonth() + 1) + "-" + two(d.getDate()); }
+    /** Al câtelea tablou păstrat aduce fiecare treaptă: altfel pentru fiecare om, dar mereu în aceleași ferestre. */
+    function slots() {
+      var r = new Seva.Random(BigInt.asIntN(64, BigInt(Store.authorId()) ^ 0x57454C43n));
+      return [0, 2 + r.nextIntUntil(3), 5 + r.nextIntUntil(3), 8 + r.nextIntUntil(3)];
+    }
+    /** Treapta care e la rând pentru următorul tablou păstrat, sau 0 dacă hotărăște norocul. */
+    function due() {
+      var next = int("rare_n") + 1;
+      if (next > 10) return 0;
+      var s = slots();
+      for (var tier = 1; tier <= 3; tier++) if (!flag("rare_got" + tier) && next >= s[tier]) return tier;
+      return 0;
+    }
+    function used() { return Store.get("seva.luck_day") === today() ? int("luck_used") : 0; }
+    return {
+      TICKETS: TICKETS,
+      /** Doar în pagina de probă: tablourile rare apar des și fără limita zilei, ca treptele și efectele lor să poată fi văzute. */
+      often: function () { return flag("test_often"); },
+      setOften: function (on) { Store.set("seva.test_often", on ? "1" : "0"); },
+      ticketsLeft: function () { return Math.max(0, TICKETS - used()); },
+      /** Sămânța tabloului compus acum: poartă treapta care i se cuvine. */
+      pick: function (seed) {
+        var welcome = due();
+        if (welcome > 0) return seedWithTier(seed, welcome);
+        var often = flag("test_often");
+        if (!often && TICKETS - used() <= 0) return seedWithTier(seed, 0);
+        var roll = new Seva.Random(BigInt.asIntN(64, seed ^ 0x4C55434Bn)).nextFloat();
+        var want = often ? (roll < 0.15 ? 3 : roll < 0.35 ? 2 : roll < 0.6 ? 1 : 0)
+          : (roll < P_GOLD ? 3 : roll < P_GOLD + P_COLLECTOR ? 2 : roll < P_GOLD + P_COLLECTOR + P_RARE ? 1 : 0);
+        return seedWithTier(seed, want);
+      },
+      /** La Păstrează: numără darul de bun venit și încercarea zilei. Întoarce true dacă a fost ultima încercare a zilei. */
+      onKeep: function (tier) {
+        Store.set("seva.rare_n", String(int("rare_n") + 1));
+        if (tier >= 1 && tier <= 3) Store.set("seva.rare_got" + tier, "1");
+        var n = used() + 1;
+        Store.set("seva.luck_day", today()); Store.set("seva.luck_used", String(n));
+        return n === TICKETS;
+      }
+    };
+  })();
+
   // ================================================================ fereastra de întrebat
 
   var modal = $("modal"), mInput = $("m-input"), mOk = $("m-ok"), mCancel = $("m-cancel"), mDone = null;
@@ -169,7 +227,13 @@
   btn.clear.textContent = T.clear; btn.compose.textContent = T.compose; btn.keep.textContent = T.keep;
   btn.another.textContent = T.another; btn.again.textContent = T.again; btn.backBoard.textContent = T.backToBoard;
   $("to-collection").textContent = T.collection;
-  $("build").textContent = BUILD;
+  // doar în pagina de probă: atingerea numărului probei face tablourile rare să apară des, ca efectele lor să poată fi văzute
+  function paintBuild() { $("build").textContent = BUILD + (Rarity.often() ? " · " + T.often : ""); }
+  $("build").addEventListener("click", function () {
+    Rarity.setOften(!Rarity.often());
+    paintBuild();
+    if (!composed && !locked && strokes.length === 0 && !current) { seed = newSeed(); repaint(); }
+  });
 
   var strokes = [];            // formele desenate: { points: [{x, y}], times: [ms] }, în coordonatele cărții
   var current = null;          // forma care se desenează acum
@@ -177,6 +241,7 @@
   var composed = false;
   var locked = false;          // după Păstrează, planșa stă pe loc până la „Înapoi la planșă”
   var piece = null;            // tabloul compus acum
+  var lastStamp;
   var seed = newSeed();
   var ink = 0xFFFFFFFF | 0;    // cerneala potrivită hârtiei
   var card = { left: 0, top: 0, w: 0, h: 0 };   // cartea, în puncte de ecran
@@ -184,11 +249,12 @@
   var paper = null;            // cartea desenată: hârtia goală sau tabloul
   var queued = false;
 
-  /** Sămânța momentului. Până vine raritatea (proba următoare), toate tablourile se nasc simple. */
+  /** Sămânța momentului, cu treapta pe care o poartă (ascunsă până la Păstrează). Gustul vine mai târziu. */
   function newSeed() {
     var s = BigInt(Date.now());
-    if (typeof seed !== "undefined" && s <= seed) s = seed + 1n;
-    return seedWithTier(s, 0);
+    if (typeof lastStamp !== "undefined" && s <= lastStamp) s = lastStamp + 1n;
+    lastStamp = s;
+    return Rarity.pick(s);
   }
 
   function css(color, alpha) {
@@ -255,6 +321,7 @@
     c.fillStyle = "rgba(0,0,0,0.086)";
     for (var i = 3; i >= 1; i--) c.fillRect(L - i * 2, Tp - i * 1.2 + 2, (R + i * 2) - (L - i * 2), (B + i * 2.4) - (Tp - i * 1.2 + 2));
     if (paper) c.drawImage(paper, L, Tp, card.w, card.h);
+    if (rv) { drawReveal(c); return; }
     if (composed) return;
     c.save();
     c.beginPath(); c.rect(L, Tp, card.w, card.h); c.clip();
@@ -297,6 +364,8 @@
 
   board.addEventListener("pointerdown", function (e) {
     e.preventDefault();
+    // cât tabloul rar își primește rama, atingerea doar scurtează momentul
+    if (rv) { if (performance.now() - rv.start > (rv.tier === 3 ? 2600 : 900)) endReveal(); return; }
     if (locked || pointer !== null) return;    // tabloul păstrat își așteaptă alegerea: atingerea nu îl șterge
     pointer = e.pointerId;
     try { board.setPointerCapture(e.pointerId); } catch (x) { }
@@ -336,8 +405,9 @@
     var n = strokes.length;
     btn.compose.hidden = btn.clear.hidden = !(!composed && n > 0);
     btn.keep.hidden = btn.another.hidden = btn.again.hidden = !(composed && !locked);
-    btn.backBoard.hidden = !locked;
-    hint.textContent = locked ? T.choiceKept.replace("%s", T.tier0) : composed ? T.hintComposed : (n === 0 ? " " : T.hintMore);
+    btn.backBoard.hidden = !locked || !!rv;
+    var tier = locked && piece ? Seva.tierOf(piece.seed) : 0;
+    hint.textContent = rv ? T.rareFound : locked ? T.choiceKept.replace("%s", T.tiers[tier] || T.tier0) : composed ? T.hintComposed : (n === 0 ? "\u00a0" : T.hintMore);
     hint.classList.toggle("none", n === 0 && !composed);
   }
 
@@ -374,13 +444,234 @@
   btn.again.addEventListener("click", startNew);
   btn.keep.addEventListener("click", function () {      // Păstrează: tabloul intră în colecție și planșa îl ține la vedere
     if (!composed || !piece || locked) return;
+    // raritatea se află abia acum; tabloul intră în colecție înainte de orice efect, ca nimic să nu-l poată pierde
+    var tier = Seva.tierOf(piece.seed);
     Store.add(piece);
-    locked = true;
-    state();
-    repaint();
+    Rarity.onKeep(tier);
+    if (tier === 0) { locked = true; state(); repaint(); }
+    else reveal(tier, T.tiers[tier], tier === 3 ? T.goldSub : "", function () { state(); invalidate(); });
   });
   btn.backBoard.addEventListener("click", startNew);
   $("to-collection").addEventListener("click", function () { go("collection"); });
+
+  // ---------------------------------------------------------------- momentul în care un tablou rar își primește rama (GrowthView.reveal)
+
+  var rv = null;
+  var BURSTS = [0.62, 1.1, 1.62, 2.2, 2.9, 3.55, 4.3];
+  function rgba(rgb, a) { return "rgba(" + ((rgb >> 16) & 255) + "," + ((rgb >> 8) & 255) + "," + (rgb & 255) + "," + Math.max(0, Math.min(1, a)) + ")"; }
+  function clamp01(x) { return x < 0 ? 0 : x > 1 ? 1 : x; }
+  function dice(seedBig) {       // numere la întâmplare pentru scântei; aici nu trebuie să fie aceleași ca pe Android
+    var s = Number(BigInt.asUintN(32, seedBig)) || 1;
+    var f = function () { s |= 0; s = s + 0x6D2B79F5 | 0; var t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+    return { f: f, i: function (n) { return Math.floor(f() * n); } };
+  }
+
+  /**
+   * La Păstrează, un tablou rar: rama obișnuită se topește în rama lui, o lumină trece peste tablou, scântei se ridică
+   * de pe ramă (la Seva de aur plouă și praf de aur), iar numele treptei apare o clipă. La sfârșit cheamă onDone.
+   */
+  function reveal(tier, label, sub, onDone) {
+    var old = mk(paper.width, paper.height);
+    old.getContext("2d").drawImage(paper, 0, 0);
+    locked = true;
+    repaint();                    // de acum cartea poartă rama treptei
+    var total = tier === 3 ? 6.7 : tier === 2 ? 3.3 : 2.5;
+    var r = dice(piece.seed);
+    var L = card.left, Tp = card.top, R = card.left + card.w, B = card.top + card.h, w = card.w, h = card.h;
+    var colors = tier === 3 ? [0xFFE9A6, 0xF6C95A, 0xFFF8E0] : tier === 2 ? [0xFFFFFF, 0xDCE6F5, 0xF2E6CF] : [0xF2E6CF, 0xFFFFFF];
+    var sparks = [], fires = [], leaves = [], burstXY = [], i, k;
+    // scânteile de pe ramă: se nasc pe marginea cărții și se ridică încet
+    for (i = 0, k = tier === 3 ? 110 : tier === 2 ? 36 : 18; i < k; i++) {
+      var side = r.i(4), u = r.f();
+      sparks.push({ x: side <= 1 ? L + w * u : side === 2 ? L + 3 : R - 3, y: side === 0 ? Tp + 3 : side === 1 ? B - 3 : Tp + h * u,
+        vx: (r.f() * 2 - 1) * 12, vy: -(6 + r.f() * 18), born: 0.15 + r.f() * (total - 1.5), life: 0.7 + r.f() * 0.7, size: 2.2 + r.f() * 3.4, color: colors[r.i(colors.length)] });
+    }
+    if (tier === 3) {
+      // praful de aur: cade de sus, peste tablou
+      for (i = 0; i < 90; i++) sparks.push({ x: L + w * r.f(), y: Tp + h * 0.35 * r.f(), vx: (r.f() * 2 - 1) * 8, vy: 40 + r.f() * 90,
+        born: 0.3 + r.f() * (total - 2.2), life: 1.1 + r.f() * 0.9, size: 0.9 + r.f() * 1.6, color: colors[r.i(colors.length)] });
+      // artificiile: fiecare izbucnire își are locul, clipa și culoarea ei; ultima e cea mai mare
+      BURSTS.forEach(function (bt, bi) {
+        var bx = L + w * (0.18 + r.f() * 0.64), by = Tp + h * (0.13 + r.f() * 0.42), tint = colors[r.i(colors.length)];
+        burstXY.push(bx, by);
+        for (var j = 0, m = bi === BURSTS.length - 1 ? 84 : 52; j < m; j++) fires.push({ x: bx, y: by, ang: r.f() * 6.2832, speed: 70 + r.f() * 170, born: bt,
+          life: 0.9 + r.f() * 0.8, size: 1.3 + r.f() * 1.7, color: r.f() < 0.65 ? tint : colors[r.i(colors.length)] });
+      });
+      // foițele de aur: cad de sus, răsucindu-se
+      var golds = [0xF6C95A, 0xFFE9A6, 0xD4A93C, 0xFFF4C8, 0xE8B84A];
+      for (i = 0; i < 150; i++) leaves.push({ x: L + w * r.f(), born: 0.6 + r.f() * 3.4, fall: 110 + r.f() * 150, sway: 10 + r.f() * 28, freq: 1.2 + r.f() * 2.2,
+        phase: r.f() * 6.28, spin: 2 + r.f() * 5, w: 4.5 + r.f() * 5.5, h: 2.4 + r.f() * 2.8, color: golds[r.i(golds.length)] });
+    }
+    rv = { tier: tier, label: label, sub: sub, done: onDone, start: performance.now(), total: total, old: old, sparks: sparks, fires: fires, leaves: leaves, burstXY: burstXY };
+    state();
+    invalidate();
+  }
+
+  function endReveal() {
+    if (!rv) return;
+    var done = rv.done;
+    rv.old.width = 0;
+    rv = null;
+    invalidate();
+    if (done) done();
+  }
+
+  function roundRect(c, x0, y0, x1, y1, rad) {
+    c.beginPath();
+    c.moveTo(x0 + rad, y0); c.arcTo(x1, y0, x1, y1, rad); c.arcTo(x1, y1, x0, y1, rad); c.arcTo(x0, y1, x0, y0, rad); c.arcTo(x0, y0, x1, y0, rad);
+    c.closePath();
+  }
+
+  function drawReveal(c) {
+    var t = (performance.now() - rv.start) / 1000, total = rv.total, tier = rv.tier;
+    var L = card.left, Tp = card.top, w = card.w, h = card.h;
+    var cx = L + w / 2, cy = Tp + h / 2, W = board.width / dpr, H = board.height / dpr, k, g, a;
+    // cu cât se apropie sfârșitul, totul se stinge lin
+    var out = clamp01((total - t) / 0.7);
+    if (tier === 3) {
+      // Seva de aur: tabloul se întunecă o clipă și o lumină crește din mijloc, apoi izbucnește și lasă în urmă rama de aur
+      if (t < 0.42) {
+        c.drawImage(rv.old, L, Tp, w, h);
+        k = t / 0.42;
+        c.fillStyle = rgba(0x0A0806, 0.66 * k); c.fillRect(L, Tp, w, h);
+        var rad = w * (0.04 + 0.5 * k * k);
+        g = c.createRadialGradient(cx, cy, 0, cx, cy, rad);
+        g.addColorStop(0, rgba(0xFFF6D8, 1)); g.addColorStop(0.45, rgba(0xF6C95A, 0.75)); g.addColorStop(1, rgba(0xF6C95A, 0));
+        c.fillStyle = g; c.beginPath(); c.arc(cx, cy, rad, 0, 6.2832); c.fill();
+      } else {
+        // razele: un evantai de lumină care se rotește încet în spatele sărbătorii
+        var ra = clamp01(Math.min((t - 0.42) / 0.5, (5.2 - t) / 1.4)) * out;
+        if (ra > 0) {
+          var reach = Math.hypot(W, H);
+          c.save(); c.translate(cx, cy); c.rotate(t * 15 * Math.PI / 180);
+          c.beginPath();
+          for (k = 0; k < 14; k++) {
+            var a0 = k * 0.4488, a1 = a0 + 0.15;
+            c.moveTo(0, 0); c.lineTo(Math.cos(a0) * reach, Math.sin(a0) * reach); c.lineTo(Math.cos(a1) * reach, Math.sin(a1) * reach); c.closePath();
+          }
+          c.fillStyle = rgba(0xFFE9A6, 0.204 * ra); c.fill();
+          c.restore();
+        }
+        // izbucnirea: totul e lumină, apoi se limpezește
+        var fl = clamp01(1 - (t - 0.42) / 0.85);
+        if (fl > 0) { c.fillStyle = rgba(0xFFF6D8, 0.957 * fl * fl); c.fillRect(0, 0, W, H); }
+        // rama pulsează în aur
+        var s2 = Math.sin(t * 5.4), pulse = (0.45 + 0.55 * s2 * s2) * out;
+        for (k = 0; k < 3; k++) {
+          c.lineWidth = 16 - k * 6;
+          c.strokeStyle = rgba(0xFFD978, (0x16 + k * 0x1E) / 255 * pulse);
+          c.strokeRect(L, Tp, w, h);
+        }
+      }
+    } else {
+      // rama obișnuită se topește în cea nouă
+      a = clamp01(1 - t / 0.8);
+      if (a > 0) { c.globalAlpha = a; c.drawImage(rv.old, L, Tp, w, h); c.globalAlpha = 1; }
+    }
+    c.save();
+    c.beginPath(); c.rect(L, Tp, w, h); c.clip();
+    // lumina care trece pieziș peste tablou: o dată, de două ori, iar la Seva de aur de patru ori
+    var tint = tier === 3 ? 0xFFE9A6 : 0xFFFFFF;
+    for (k = 0; k < (tier === 3 ? 4 : tier); k++) {
+      var s = (t - ((tier === 3 ? 1.0 : 0.3) + k * 0.85)) / 0.95;
+      if (s <= 0 || s >= 1) continue;
+      var band = w * 0.34, x = L - band * 2 + (w + band * 4) * s;
+      g = c.createLinearGradient(x - band, 0, x + band, 0);
+      g.addColorStop(0, rgba(tint, 0)); g.addColorStop(0.5, rgba(tint, 0.345)); g.addColorStop(1, rgba(tint, 0));
+      c.save(); c.translate(cx, cy); c.rotate(18 * Math.PI / 180); c.translate(-cx, -cy);
+      c.fillStyle = g; c.fillRect(x - band, Tp - h * 0.3, band * 2, h * 1.6);
+      c.restore();
+    }
+    c.restore();
+    if (tier === 3 && t >= 0.42) drawFeast(c, t, out, H);
+    // scânteile: stele mici cu patru colțuri, care clipesc o dată și se sting
+    rv.sparks.forEach(function (sp) {
+      var age = t - sp.born;
+      if (age <= 0 || age >= sp.life) return;
+      var al = Math.sin(Math.PI * age / sp.life), x = sp.x + sp.vx * age, y = sp.y + sp.vy * age, rr = sp.size * (0.55 + 0.45 * al);
+      c.fillStyle = rgba(sp.color, 0.22 * al);
+      c.beginPath(); c.arc(x, y, rr * 1.9, 0, 6.2832); c.fill();
+      c.fillStyle = rgba(sp.color, 0.94 * al);
+      c.beginPath();
+      c.moveTo(x, y - rr); c.quadraticCurveTo(x, y, x + rr, y); c.quadraticCurveTo(x, y, x, y + rr); c.quadraticCurveTo(x, y, x - rr, y); c.quadraticCurveTo(x, y, x, y - rr);
+      c.fill();
+    });
+    // numele treptei: apare, stă, se stinge
+    var from = tier === 3 ? 1.15 : 0.55;
+    var la = clamp01(Math.min((t - from) / (tier === 3 ? 0.25 : 0.45), (total - 0.25 - t) / 0.5));
+    if (la > 0 && rv.label) {
+      var gold = tier === 3, size = gold ? 36 : 26, two = gold && !!rv.sub;
+      var font = function (px) { return "italic " + px + "px Georgia, 'Times New Roman', serif"; };
+      c.font = font(16); var subW = two ? c.measureText(rv.sub).width : 0;
+      c.font = font(size);
+      var tw = Math.max(c.measureText(rv.label).width, subW);
+      // pe un telefon îngust, numele se strânge cât să încapă pe carte
+      var padX = gold ? 34 : 26, half = two ? 46 : 27, fitK = Math.min(1, (w * 0.94) / (tw + padX * 2));
+      c.save();
+      c.translate(cx, cy);
+      if (gold) {   // numele sare în față și se așază
+        var uu = clamp01((t - from) / 0.5), pop = 0.55 + 0.45 * uu + 0.22 * Math.sin(Math.PI * uu);
+        c.scale(pop, pop);
+      }
+      c.scale(fitK, fitK);
+      roundRect(c, -tw / 2 - padX, -half, tw / 2 + padX, half, half);
+      c.fillStyle = rgba(0x141318, 0.77 * la); c.fill();
+      c.lineWidth = 1.2; c.strokeStyle = rgba(gold ? 0xF1DC96 : 0xF2E6CF, 0.565 * la); c.stroke();
+      c.textAlign = "center"; c.textBaseline = "alphabetic";
+      c.fillStyle = rgba(gold ? 0xF6E4A4 : 0xF2E6CF, la);
+      if (two) {
+        c.fillText(rv.label, 0, 3);
+        c.font = font(16); c.fillStyle = rgba(0xF2E6CF, 0.85 * la);
+        c.fillText(rv.sub, 0, 28);
+      } else c.fillText(rv.label, 0, size * 0.34);
+      c.restore();
+    }
+    if (t >= total) setTimeout(endReveal, 0); else invalidate();
+  }
+
+  /** Sărbătoarea de la Seva de aur: foițe de aur care cad răsucindu-se și artificii care izbucnesc peste tablou. */
+  function drawFeast(c, t, out, H) {
+    var Tp = card.top, g;
+    rv.leaves.forEach(function (lf) {
+      var age = t - lf.born;
+      if (age <= 0) return;
+      var y = Tp - 24 + lf.fall * age;
+      if (y > H + 20) return;
+      var x = lf.x + Math.sin(age * lf.freq + lf.phase) * lf.sway;
+      // foița se răsucește: lățimea ei se strânge și se desface, și prinde lumina când e cu fața
+      var turn = Math.abs(Math.cos(age * lf.spin + lf.phase));
+      var a = (0.55 + 0.45 * turn) * out * Math.min(1, age / 0.25), hw = lf.w * 0.5 * Math.max(turn, 0.15);
+      c.save(); c.translate(x, y); c.rotate(((age * lf.spin * 40 + lf.phase * 57) % 360) * Math.PI / 180);
+      c.fillStyle = rgba(lf.color, 0.94 * a);
+      c.fillRect(-hw, -lf.h * 0.5, hw * 2, lf.h);
+      c.restore();
+    });
+    // artificiile: clipa izbucnirii, apoi dârele care se deschid, încetinesc și cad
+    BURSTS.forEach(function (bt, bi) {
+      var age = t - bt;
+      if (age < 0 || age >= 0.22) return;
+      var k = 1 - age / 0.22, rad = 26 + 90 * (1 - k), bx = rv.burstXY[bi * 2], by = rv.burstXY[bi * 2 + 1];
+      g = c.createRadialGradient(bx, by, 0, bx, by, rad);
+      g.addColorStop(0, rgba(0xFFF8E0, 0.88 * k)); g.addColorStop(1, rgba(0xFFE9A6, 0));
+      c.fillStyle = g; c.beginPath(); c.arc(bx, by, rad, 0, 6.2832); c.fill();
+    });
+    var reach = function (a) { return (1 - Math.exp(-2.4 * a)) / 2.4; };
+    c.lineCap = "round";
+    rv.fires.forEach(function (f) {
+      var age = t - f.born;
+      if (age <= 0 || age >= f.life) return;
+      var k = age / f.life, a0 = Math.max(0, age - 0.09), d = reach(age), d0 = reach(a0), cs = Math.cos(f.ang), sn = Math.sin(f.ang);
+      var x = f.x + cs * f.speed * d, y = f.y + sn * f.speed * d + 60 * age * age;
+      var x0 = f.x + cs * f.speed * d0, y0 = f.y + sn * f.speed * d0 + 60 * a0 * a0;
+      // spre sfârșit scânteia pâlpâie
+      var a = (1 - k) * out;
+      if (k > 0.6) a *= 0.55 + 0.45 * Math.sin(age * 46 + f.ang * 9);
+      c.lineWidth = f.size; c.strokeStyle = rgba(f.color, 0.69 * a);
+      c.beginPath(); c.moveTo(x0, y0); c.lineTo(x, y); c.stroke();
+      c.fillStyle = rgba(f.color, a);
+      c.beginPath(); c.arc(x, y, f.size * 0.85, 0, 6.2832); c.fill();
+    });
+  }
 
   // ================================================================ colecția (CollectionActivity.kt)
 
@@ -514,6 +805,7 @@
     new ResizeObserver(function () { if (document.body.getAttribute("data-view") === "viewer") drawViewer(); }).observe(viewStage);
   } else window.addEventListener("resize", function () { layout(); drawViewer(); });
   window.addEventListener("orientationchange", function () { setTimeout(layout, 250); });
+  paintBuild();
   state();
   layout();
 
@@ -526,7 +818,8 @@
   window.SevaApp = {
     state: function () {
       return { view: document.body.getAttribute("data-view"), strokes: strokes.length, composed: composed, locked: locked, piece: piece,
-        card: card, seed: String(seed), author: Store.author(), kept: Store.list().length, thumbs: Object.keys(thumbs).length };
+        card: card, seed: String(seed), author: Store.author(), kept: Store.list().length, thumbs: Object.keys(thumbs).length,
+        tier: Seva.tierOf(seed), revealing: rv ? rv.tier : 0, ticketsLeft: Rarity.ticketsLeft(), often: Rarity.often() };
     }
   };
 })();

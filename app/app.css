@@ -18,7 +18,7 @@ body[data-view="board"] #v-board, body[data-view="collection"] #v-collection, bo
 .top { flex:0 0 auto; height:52px; display:flex; align-items:center; justify-content:center; position:relative; padding:0 14px; }
 .brand { color:var(--cream); font-size:16px; letter-spacing:.32em; text-indent:.32em; opacity:.8; }
 .title { color:var(--cream); font-size:18px; letter-spacing:.03em; }
-#build { position:absolute; left:16px; color:#5E5C66; font-size:11px; }
+#build { position:absolute; left:6px; top:0; height:52px; padding:0 10px; display:flex; align-items:center; color:#5E5C66; font-size:11px; touch-action:manipulation; }
 .pill {
   appearance:none; -webkit-appearance:none; font:inherit; font-size:15px; letter-spacing:.03em; line-height:1;
   position:absolute; top:8px; height:36px; padding:0 16px; border-radius:18px;
