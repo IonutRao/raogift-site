@@ -12,7 +12,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "probă 8";
+  var BUILD = "9";
   // limba: cea aleasă în Despre, altfel a telefonului
   var lang = (function () {
     var chosen = null;
@@ -29,7 +29,23 @@
       compose: "Compune", clear: "Reia", keep: "Păstrează", another: "Alt tablou", again: "Gest nou",
       backToBoard: "Înapoi la planșă", tier0: "Tablou simplu", choiceKept: "%s. E în colecția ta.",
       tiers: [null, "Piesă rară", "Piesă de colecție", "Seva de aur"], rareFound: "Un tablou rar și-a găsit rama.", goldSub: "cel mai rar dintre tablouri",
-      often: "rare des",
+      welcomeTitle: "Seva, varianta din browser",
+      welcomeText: "Aceasta este Seva pentru iPhone în varianta din browser; aplicația din App Store vine mai târziu.\n\nColecția ta stă în memoria browserului de pe acest telefon, fără cont. Safari o poate goli dacă pagina nu e deschisă cam o săptămână, așa că exportă din când în când colecția ca fișier, din Despre. Îți vom aminti.",
+      homeTitle: "Seva pe ecranul principal",
+      homeText: "Ai deschis Seva de pe ecranul principal. Aici colecția este separată de cea din Safari, iar darurile primite prin link se deschid în Safari și ajung în colecția de acolo.\n\nCa să ai o singură colecție, deschide Seva din Safari.",
+      understood: "Am înțeles",
+      remindTitle: "Colecția ta e doar pe acest telefon",
+      remindText: "Tablourile tale stau în memoria browserului, iar Safari o poate goli dacă pagina nu e deschisă cam o săptămână. Exportă colecția ca fișier, ca să o poți aduce oricând înapoi.",
+      remindNever: "Încă nu ai exportat-o niciodată.",
+      remindSince: "Ultimul export: {1}. De atunci colecția s-a schimbat.",
+      remindOk: "Exportă acum",
+      remindLater: "Mai târziu",
+      exportLast: "Ultimul export: {1}.",
+      exportNever: "Colecția nu a fost încă exportată.",
+      exportStale: "De atunci colecția s-a schimbat.",
+      gateTitle: "Seva pentru Android",
+      gateText: "Pe Android, Seva este o aplicație din Google Play: merge fără internet și îți ține colecția în telefon.",
+      gateGo: "Deschide în Google Play",
       toCollection: "În colecție", kept: "Adăugată în colecție", choiceLoose: "%s. Păstrezi tabloul sau îl dăruiești?", choiceFull: "%s. Azi mai poți doar să dăruiești.",
       leftToday: "Azi mai poți păstra: %d.", giftedLeft: "A plecat în dar. Azi mai poți dărui pe loc: %d.",
       limitTitle: "Atât pe azi", limitFree: "Azi ai păstrat cinci tablouri și ai dăruit pe loc alte cinci. Mâine poți din nou; de încercat poți încerca în continuare oricât.",
@@ -98,7 +114,7 @@
       aboutRule: "Poți încerca oricâte imagini vrei, gratuit, mereu. Păstrezi cinci tablouri pe zi: alegerea e ceea ce face colecția a ta. Alte cinci pe zi le poți dărui pe loc, imediat după Păstrează, fără să ocupe un loc în colecție. Primirea și dăruirea din colecție sunt mereu libere. Tablourile sunt la fel de frumoase pentru toți.",
       aboutMoveTitle: "Colecția la adăpost",
       aboutMoveShort: "Aici colecția stă în memoria browserului, nu într-un cont. Exportă din când în când o copie, ca fișier.",
-      aboutMove: "Colecția e un fișier mic de text (parametri, nu imagini). Aici ea stă în memoria browserului de pe acest telefon, iar browserul o poate șterge dacă pagina nu mai e deschisă o vreme. Adaugă pagina pe ecranul principal și exportă din când în când colecția: fișierul poate fi importat oricând înapoi, aici sau în aplicația Seva de pe alt telefon. Importul adaugă doar ce lipsește.",
+      aboutMove: "Colecția e un fișier mic de text (parametri, nu imagini). Aici ea stă în memoria browserului de pe acest telefon, iar Safari o poate goli dacă pagina nu e deschisă cam o săptămână. Exportă din când în când colecția: fișierul poate fi importat oricând înapoi, aici sau în aplicația Seva de pe alt telefon. Importul adaugă doar ce lipsește.",
       aboutPrivacy: "Pagina nu cere nicio permisiune și nu are cont. Numele tău, colecția și preferințele învățate stau în memoria browserului, pe telefonul tău, și nu pleacă nicăieri. Colecția nu păstrează imagini, ci parametrii din care fiecare tablou renaște identic.",
       aboutVersion: "Varianta din browser",
       fam: ["ramurile", "bulele", "panglicile", "constelațiile", "mozaicurile", "cuburile"],
@@ -138,7 +154,23 @@
       compose: "Compose", clear: "Clear", keep: "Keep", another: "Another", again: "New gesture",
       backToBoard: "Back to the board", tier0: "Plain piece", choiceKept: "%s. It is in your collection.",
       tiers: [null, "Rare piece", "Collector's piece", "Golden Seva"], rareFound: "A rare piece has found its frame.", goldSub: "the rarest of all pieces",
-      often: "rare often",
+      welcomeTitle: "Seva, the browser version",
+      welcomeText: "This is Seva for iPhone in its browser version; the App Store app comes later.\n\nYour collection lives in this phone's browser memory, with no account. Safari may clear it if the page is not opened for about a week, so export the collection as a file now and then, from About. We will remind you.",
+      homeTitle: "Seva on the Home Screen",
+      homeText: "You opened Seva from the Home Screen. Here the collection is separate from the one in Safari, and gifts received through a link open in Safari and join the collection there.\n\nTo have a single collection, open Seva in Safari.",
+      understood: "Got it",
+      remindTitle: "Your collection lives only on this phone",
+      remindText: "Your pieces live in the browser's memory, and Safari may clear it if the page is not opened for about a week. Export the collection as a file, so you can always bring it back.",
+      remindNever: "You have not exported it yet.",
+      remindSince: "Last export: {1}. The collection has changed since.",
+      remindOk: "Export now",
+      remindLater: "Later",
+      exportLast: "Last export: {1}.",
+      exportNever: "The collection has not been exported yet.",
+      exportStale: "The collection has changed since.",
+      gateTitle: "Seva for Android",
+      gateText: "On Android, Seva is an app on Google Play: it works without internet and keeps your collection on your phone.",
+      gateGo: "Open in Google Play",
       toCollection: "To collection", kept: "Added to your collection", choiceLoose: "%s. Keep the piece or give it away?", choiceFull: "%s. Today you can only give it away.",
       leftToday: "You can still keep today: %d.", giftedLeft: "Gift sent. You can still give on the spot today: %d.",
       limitTitle: "That's all for today", limitFree: "Today you kept five pieces and gave five more away on the spot. Tomorrow you can again; you can go on trying as many images as you like.",
@@ -207,7 +239,7 @@
       aboutRule: "You can try as many images as you like, free, always. You keep five pieces a day: choosing is what makes the collection yours. Five more a day can be given on the spot, right after Keep, without taking a place in the collection. Receiving and giving from the collection are always free. The pieces are just as beautiful for everyone.",
       aboutMoveTitle: "Keeping your collection safe",
       aboutMoveShort: "Here your collection lives in the browser's memory, not in an account. Export a copy now and then, as a file.",
-      aboutMove: "The collection is a small text file (parameters, not images). Here it lives in this phone's browser memory, and the browser may clear it if the page is not opened for a while. Add the page to your Home Screen and export the collection now and then: the file can be imported back at any time, here or in the Seva app on another phone. Import only adds what is missing.",
+      aboutMove: "The collection is a small text file (parameters, not images). Here it lives in this phone's browser memory, and Safari may clear it if the page is not opened for about a week. Export the collection now and then: the file can be imported back at any time, here or in the Seva app on another phone. Import only adds what is missing.",
       aboutPrivacy: "This page asks for no permission and has no account. Your name, your collection and the learned preferences stay in the browser's memory, on your phone, and go nowhere. The collection keeps no images, only the parameters from which each piece is reborn identically.",
       aboutVersion: "Browser version",
       fam: ["branches", "bubbles", "ribbons", "constellations", "mosaics", "cubes"],
@@ -308,7 +340,7 @@
       if (get("seva.order") !== "1") { pieces.sort(function (a, b) { return b.createdAt - a.createdAt; }); set("seva.order", "1"); if (pieces.length) save(); }
       return pieces;
     }
-    function save() { set("seva.pieces", JSON.stringify(pieces.map(pack))); }
+    function save() { set("seva.pieces", JSON.stringify(pieces.map(pack))); set("seva.unsaved", "1"); }
 
     return {
       get: get, set: set,
@@ -352,8 +384,8 @@
         if (i >= 0) {
           var have = pieces[i];
           if (!have.giftedAt) return "ALREADY";
-          // propriul link, deschis de mine: darul e la cel care l-a primit. Cu „rare des” pornit se întoarce, ca să poată fi probat de unul singur.
-          if (sentByMe && get("seva.test_often") !== "1") return "OWN";
+          // propriul link, deschis de mine: darul e la cel care l-a primit
+          if (sentByMe) return "OWN";
           pieces.splice(i, 1);
           have.giftedAt = null;
           if (!mine && p.from) { have.from = p.from; have.fromId = p.fromId; }
@@ -547,19 +579,14 @@
     function used() { return Store.get("seva.luck_day") === today() ? int("luck_used") : 0; }
     return {
       TICKETS: TICKETS,
-      /** Doar în pagina de probă: tablourile rare apar des și fără limita zilei, ca treptele și efectele lor să poată fi văzute. */
-      often: function () { return flag("test_often"); },
-      setOften: function (on) { Store.set("seva.test_often", on ? "1" : "0"); },
       ticketsLeft: function () { return Math.max(0, TICKETS - used()); },
       /** Sămânța tabloului compus acum: poartă treapta care i se cuvine. */
       pick: function (seed) {
         var welcome = due();
         if (welcome > 0) return seedWithTier(seed, welcome);
-        var often = flag("test_often");
-        if (!often && TICKETS - used() <= 0) return seedWithTier(seed, 0);
+        if (TICKETS - used() <= 0) return seedWithTier(seed, 0);
         var roll = new Seva.Random(BigInt.asIntN(64, seed ^ 0x4C55434Bn)).nextFloat();
-        var want = often ? (roll < 0.15 ? 3 : roll < 0.35 ? 2 : roll < 0.6 ? 1 : 0)
-          : (roll < P_GOLD ? 3 : roll < P_GOLD + P_COLLECTOR ? 2 : roll < P_GOLD + P_COLLECTOR + P_RARE ? 1 : 0);
+        var want = roll < P_GOLD ? 3 : roll < P_GOLD + P_COLLECTOR ? 2 : roll < P_GOLD + P_COLLECTOR + P_RARE ? 1 : 0;
         return seedWithTier(seed, want);
       },
       /** La Păstrează: numără darul de bun venit și încercarea zilei. Întoarce true dacă a fost ultima încercare a zilei. */
@@ -624,9 +651,8 @@
   /** Are ceva pe spate: un gând, urma unuia ars, sau ștampila unei ocazii. */
   function hasBack(p) { return !!p.note || !!p.burned || (p.occasion | 0) !== 0; }
 
-  /** Crăciunul se poate alege doar în sezon, de la 1 decembrie până la 6 ianuarie. În pagina de probă, cu „rare des”, se vede mereu. */
+  /** Crăciunul se poate alege doar în sezon, de la 1 decembrie până la 6 ianuarie. */
   function christmasSeason() {
-    if (Rarity.often()) return true;
     var d = new Date();
     return d.getMonth() === 11 || (d.getMonth() === 0 && d.getDate() <= 6);
   }
@@ -1784,7 +1810,7 @@
   // apoi setările și încrederea. În pagina din browser nu există abonament (colecționarii vin odată cu aplicația din
   // App Store), nici sunete deocamdată; textele spun doar ce e adevărat aici.
 
-  var aboutBox = $("about"), aboutStatus = null, aboutSign = null, aboutTaste = null;
+  var aboutBox = $("about"), aboutStatus = null, aboutSign = null, aboutTaste = null, aboutSafe = null;
   $("to-about").textContent = T.about;
   $("to-about").addEventListener("click", function () { go("about"); });
 
@@ -1918,20 +1944,57 @@
       var d = new Date(), two = function (x) { return String(x).padStart(2, "0"); };
       var name = "colectie-seva-" + d.getFullYear() + two(d.getMonth() + 1) + two(d.getDate()) + "-" + two(d.getHours()) + two(d.getMinutes()) + ".seva";
       var text = exportText();
-      if (window.SevaTestExport) { window.SevaTestExport(name, text); return; }
+      if (window.SevaTestExport) { window.SevaTestExport(name, text); exported(); return; }
       var download = function () {
         var a = document.createElement("a"), url = URL.createObjectURL(new Blob([text], { type: "application/octet-stream" }));
         a.href = url; a.download = name; a.style.display = "none";
         document.body.appendChild(a); a.click();
         setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 4000);
+        exported();
       };
       var file = null;
       try { file = new File([text], name, { type: "application/octet-stream" }); } catch (e) { file = null; }
       if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
-        navigator.share({ files: [file], title: T.exportSubject }).catch(function (e) { if (!e || e.name !== "AbortError") download(); });
+        // fereastra de partajare închisă fără nimic nu e un export
+        navigator.share({ files: [file], title: T.exportSubject }).then(exported, function (e) { if (!e || e.name !== "AbortError") download(); });
       } else download();
     } catch (e) { toast(T.exportFailed); if (window.console) console.error(e); }
   }
+
+  // ---- colecția la adăpost. În browser, colecția stă doar în memoria lui, iar Safari o poate goli dacă pagina nu e deschisă
+  // cam o săptămână. Omul află asta de la prima deschidere și e îndemnat din când în când să își exporte colecția.
+
+  var WEEK = 7 * 24 * 3600 * 1000;
+  function stamp(k) { return parseInt(Store.get("seva." + k) || "0", 10) || 0; }
+  function longDate(at) {
+    try { return new Intl.DateTimeFormat(lang, { day: "numeric", month: "long", year: "numeric" }).format(new Date(at)); } catch (e) { return new Date(at).toLocaleDateString(); }
+  }
+  /** Colecția tocmai a fost exportată. */
+  function exported() {
+    var now = String(Date.now());
+    Store.set("seva.unsaved", "0"); Store.set("seva.export_at", now); Store.set("seva.safe_at", now);
+    paintAbout();
+  }
+  function standalone() {
+    try { return window.navigator.standalone === true || !!(window.matchMedia && window.matchMedia("(display-mode: standalone)").matches); } catch (e) { return false; }
+  }
+  /** La prima deschidere: ce este pagina aceasta și ce i se poate întâmpla colecției. Întoarce, prin then, dacă anunțul a fost arătat. */
+  function welcome() {
+    if (Store.get("seva.welcomed") === "1") return Promise.resolve(false);
+    Store.set("seva.welcomed", "1"); Store.set("seva.safe_at", String(Date.now()));
+    var home = standalone();
+    return ask({ title: home ? T.homeTitle : T.welcomeTitle, text: home ? T.homeText : T.welcomeText, ok: T.understood }).then(function () { return true; });
+  }
+  /** Din când în când (cel mult o dată pe săptămână), dacă în colecție sunt tablouri neexportate: îndemnul de a o pune la adăpost. */
+  function remind() {
+    if (!modal.hidden || rv || Medals.opened() || document.body.getAttribute("data-view") !== "board" || composed || locked || strokes.length > 0 || current) return;
+    if (Store.get("seva.welcomed") !== "1" || Store.get("seva.unsaved") === "0" || Store.list().length === 0) return;
+    if (Date.now() - stamp("safe_at") < WEEK) return;
+    Store.set("seva.safe_at", String(Date.now()));
+    var at = stamp("export_at");
+    ask({ title: T.remindTitle, text: T.remindText + "\n\n" + (at ? fmt(T.remindSince, longDate(at)) : T.remindNever), ok: T.remindOk, cancel: T.remindLater, sync: function () { exportCollection(); } });
+  }
+
   function importFile(file) {
     if (!file) return;
     var r = new FileReader();
@@ -1956,6 +2019,8 @@
     aboutStatus.textContent = fmt(T.aboutStatusFree, Plan.leftToday(), Plan.giftsLeftToday()) + "\n" + fmt(T.aboutLuck, Rarity.ticketsLeft(), Rarity.TICKETS);
     paintSign();
     aboutTaste.textContent = Taste.describe();
+    var at = stamp("export_at");
+    aboutSafe.textContent = at ? fmt(T.exportLast, longDate(at)) + (Store.get("seva.unsaved") === "0" ? "" : " " + T.exportStale) : T.exportNever;
     paintBuild();
   }
   function buildAbout() {
@@ -2058,6 +2123,8 @@
     c = carton("quiet");
     c.appendChild(el("h3", "small", T.aboutMoveTitle));
     c.appendChild(el("p", null, T.aboutMoveShort));
+    aboutSafe = el("p", "note");
+    c.appendChild(aboutSafe);
     row = el("div", "chips");
     var exp = chip(T.exportCollection, true);
     exp.addEventListener("click", exportCollection);
@@ -2082,17 +2149,11 @@
     policy.href = "https://sevarao.com/politica.html"; policy.target = "_blank"; policy.rel = "noopener";
     aboutBox.appendChild(policy);
     aboutBox.appendChild(el("p", "note foot", T.aboutContact + " ionutrao@gmail.com"));
-    // doar în pagina de probă: atingerea acestui rând face tablourile rare să apară des
     var build = el("p", "note foot dim");
     build.id = "build";
     aboutBox.appendChild(build);
-    build.addEventListener("click", function () {
-      Rarity.setOften(!Rarity.often());
-      paintBuild();
-      if (!composed && !locked && strokes.length === 0 && !current) { seed = newSeed(); repaint(); }
-    });
   }
-  function paintBuild() { var b = $("build"); if (b) b.textContent = T.aboutVersion + " · " + BUILD + (Rarity.often() ? " · " + T.often : ""); }
+  function paintBuild() { var b = $("build"); if (b) b.textContent = T.aboutVersion + " · " + BUILD; }
   buildAbout();
   onShow.about = function () { aboutBox.scrollTop = 0; paintAbout(); };
 
@@ -2361,13 +2422,20 @@
   layout();
   // la întoarcerea pe planșă sau în pagină (poate într-o zi nouă): „În colecție” se aprinde, dacă între timp s-a făcut loc
   onShow.board = function () { if (!rv) state(); Medals.later(); };
-  document.addEventListener("visibilitychange", function () { if (!document.hidden && !rv) state(); if (!document.hidden) Medals.later(); });
+  document.addEventListener("visibilitychange", function () { if (!document.hidden && !rv) state(); if (!document.hidden) { Medals.later(); setTimeout(remind, 1200); } });
 
   // la prima deschidere: numele cu care vor fi semnate tablourile. Fără cont, fără verificare.
   // un dar deschis din pagina de dar (#g=COD) intră în colecție după aceea
-  if (Store.author() === null) {
-    ask({ title: T.nameTitle, text: T.nameMessage, input: T.nameHint, ok: T.nameOk }).then(function (name) { Store.setAuthor(name || ""); takeHash(); Medals.celebrate(); });
-  } else { takeHash(); Medals.celebrate(); }
+  // apoi anunțul variantei din browser (o singură dată) și, din când în când, îndemnul de a exporta colecția
+  function start() { welcome().then(function (shown) { takeHash(); Medals.celebrate(); if (!shown) remind(); }); }
+  try { localStorage.removeItem("seva.test_often"); } catch (e) { }      // rămas din paginile de probă
+  if (/Android/i.test(navigator.userAgent || "")) {
+    // pe Android, Seva este aplicația din Google Play; pagina aceasta e doar puntea pentru iPhone
+    $("gate-title").textContent = T.gateTitle; $("gate-text").textContent = T.gateText; $("gate-go").textContent = T.gateGo;
+    $("gate").hidden = false;
+  } else if (Store.author() === null) {
+    ask({ title: T.nameTitle, text: T.nameMessage, input: T.nameHint, ok: T.nameOk }).then(function (name) { Store.setAuthor(name || ""); start(); });
+  } else start();
 
   // pentru probele din afara telefonului
   window.SevaApp = {
@@ -2378,7 +2446,7 @@
         card: card, seed: String(seed), author: Store.author(), kept: Store.list().length, given: Store.given().length, thumbs: Object.keys(thumbs).length,
         medal: Medals.opened(), medalsSeen: Store.get("seva.medals_seen"), lang: lang, taste: Taste.load(), tasteN: Taste.count(), tasteSays: Taste.describe(), loose: loose, keptToday: Plan.keptToday(), giftedToday: Plan.giftedToday(), pending: !!Store.pending(),
         tier: Seva.tierOf(seed), revealing: rv ? rv.tier : 0, turned: turned, secret: secret ? (secret.fire ? "arde" : "numara") : null,
-        viewing: shown[viewAt] ? { id: shown[viewAt].id, from: shown[viewAt].from, note: shown[viewAt].note, secret: shown[viewAt].secret, burned: shown[viewAt].burned, occasion: shown[viewAt].occasion } : null, ticketsLeft: Rarity.ticketsLeft(), often: Rarity.often() };
+        viewing: shown[viewAt] ? { id: shown[viewAt].id, from: shown[viewAt].from, note: shown[viewAt].note, secret: shown[viewAt].secret, burned: shown[viewAt].burned, occasion: shown[viewAt].occasion } : null, ticketsLeft: Rarity.ticketsLeft(), welcomed: Store.get("seva.welcomed"), unsaved: Store.get("seva.unsaved"), exportAt: Store.get("seva.export_at"), modal: modal.hidden ? null : $("m-title").textContent };
     }
   };
 })();

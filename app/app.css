@@ -186,3 +186,11 @@ body[data-view="about"] #v-about { display:flex; }
   .tabs { gap:4px; padding-left:4px; }
   .tab { padding:0 9px; font-size:14px; letter-spacing:0; }
 }
+
+/* pe Android: drumul spre Google Play */
+#gate { position:fixed; left:0; top:0; right:0; bottom:0; z-index:60; background:var(--bg); display:flex; flex-direction:column; align-items:center; justify-content:center;
+        padding: 0 30px; text-align:center; }
+#gate .brand { margin-bottom:34px; }
+#gate h2 { margin:0 0 12px; color:var(--cream); font-weight:400; font-size:22px; }
+#gate p { margin:0 0 28px; max-width:340px; color:var(--pale); font-size:16px; line-height:1.5; }
+#gate .btn { display:inline-flex; align-items:center; justify-content:center; text-decoration:none; margin:0; }

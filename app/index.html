@@ -9,8 +9,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Seva">
 <title>Seva</title>
-<!-- Seva pentru iPhone, în lucru: interiorul aplicației, făcut pe codul paginii de dar (../g/seva.js). Pagină de probă, nelegată de nicăieri. -->
-<link rel="stylesheet" href="app.css?v=8">
+<!-- Seva pentru iPhone, varianta din browser: puntea până la aplicația din App Store, făcută pe codul paginii de dar (../g/seva.js). -->
+<link rel="stylesheet" href="app.css?v=9">
 </head>
 <body data-view="board">
 
@@ -103,9 +103,17 @@
   <p id="stamp-line"></p>
 </div>
 
+<!-- pe Android: Seva este aplicația din Google Play -->
+<div id="gate" hidden>
+  <span class="brand">SEVA</span>
+  <h2 id="gate-title"></h2>
+  <p id="gate-text"></p>
+  <a id="gate-go" class="btn" href="https://play.google.com/store/apps/details?id=ro.ovidiu.seva"></a>
+</div>
+
 <div id="toast" hidden></div>
 
 <script src="../g/seva.js?v=10"></script>
-<script src="app.js?v=8"></script>
+<script src="app.js?v=9"></script>
 </body>
 </html>
