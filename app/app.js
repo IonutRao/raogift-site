@@ -12,7 +12,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "9";
+  var BUILD = "10";
   // limba: cea aleasă în Despre, altfel a telefonului
   var lang = (function () {
     var chosen = null;

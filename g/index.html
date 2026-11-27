@@ -99,9 +99,9 @@
       android: "În Seva, tabloul intră în colecția ta. Dacă nu ai aplicația, butonul te duce în Google Play.",
       after: "După ce instalezi Seva, întoarce-te la mesaj și atinge din nou plicul: abia atunci tabloul intră în colecția ta.",
       update: "Ai deja Seva și tabloul nu se deschide în ea? Actualizeaz-o din Google Play, apoi deschide din nou linkul.",
-      ios: "Seva este deocamdată doar pentru Android.", iosStay: " Tabloul tău rămâne aici, la acest link.",
-      keepHere: "Pune-l în colecția ta",
-      other: "Pe un telefon cu Android, tabloul poate intra în colecția ta din Seva.",
+      ios: "Pe iPhone, Seva merge deocamdată în browser: tabloul intră în colecția ta chiar aici, în Safari.", iosStay: " Tabloul tău rămâne și la acest link.",
+      iosPlain: "Pe iPhone, Seva merge deocamdată în browser.", keepHere: "Pune-l în colecția ta", openHere: "Deschide Seva",
+      other: "Pe telefon, tabloul poate intra în colecția ta din Seva.",
       foot: "Tabloul renaște din parametrii lui, chiar aici, în browserul tău. Nimic nu este trimis nicăieri.",
       newer: "Tabloul acesta e făcut cu o Seva mai nouă decât pagina, care încă nu știe să-l deseneze.", newerApp: " Se deschide în aplicație.",
       invalidHead: "Linkul a ajuns tăiat", invalid: "Dacă l-ai primit pe WhatsApp, mesajul e lung și linkul se vede doar pe jumătate. Apasă întâi „Citește mai mult” (Read more) sub mesaj, apoi atinge din nou linkul.",
@@ -118,9 +118,9 @@
       android: "In Seva, the piece joins your collection. If you do not have the app, the button takes you to Google Play.",
       after: "Once you have installed Seva, go back to the message and tap the envelope again: only then does the piece join your collection.",
       update: "You already have Seva and the piece does not open in it? Update it from Google Play, then open the link again.",
-      ios: "Seva is only on Android for now.", iosStay: " Your piece stays here, at this link.",
-      keepHere: "Add it to your collection",
-      other: "On an Android phone, the piece can join your collection in Seva.",
+      ios: "On iPhone, Seva runs in the browser for now: the piece joins your collection right here, in Safari.", iosStay: " Your piece also stays at this link.",
+      iosPlain: "On iPhone, Seva runs in the browser for now.", keepHere: "Add it to your collection", openHere: "Open Seva",
+      other: "On a phone, the piece can join your collection in Seva.",
       foot: "The piece is reborn from its parameters, right here in your browser. Nothing is sent anywhere.",
       newer: "This piece was made with a newer Seva than this page, which cannot draw it yet.", newerApp: " It opens in the app.",
       invalidHead: "The link arrived cut short", invalid: "If you received it on WhatsApp, the message is long and only part of the link is shown. Tap \"Read more\" under the message first, then tap the link again.",
@@ -147,12 +147,9 @@
         show("info", T.android); show("after", T.after); show("update", T.update);
       } else show("play", T.play);
     } else if (ios) {
-      // Seva pentru iPhone e în lucru, ca pagină de probă (../app/). Cine a deschis-o deja pe telefonul acesta își poate
-      // pune darul în colecția de acolo; restul lumii nu vede nimic nou.
-      var tester = false;
-      try { tester = !!localStorage.getItem("seva.aid"); } catch (e) { }
-      if (tester && withCode) show("open", T.keepHere).href = "../app/#g=" + code;
-      show("info", T.ios + (stays ? T.iosStay : ""));
+      // Pe iPhone, până la aplicația din App Store, Seva este varianta din browser (../app/): darul intră în colecția de acolo.
+      if (withCode) { show("open", T.keepHere).href = "../app/#g=" + code; show("info", T.ios + (stays ? T.iosStay : "")); }
+      else { show("open", T.openHere).href = "../app/"; show("info", T.iosPlain); }
     }
     else { show("play", T.play); show("info", T.other); }
   }
