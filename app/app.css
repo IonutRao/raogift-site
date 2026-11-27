@@ -3,7 +3,7 @@
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin:0; height:100%; background:var(--bg); overflow:hidden; overscroll-behavior:none; }
 body {
-  position:fixed; left:0; top:0; right:0; bottom:0; display:flex; flex-direction:column;
+  position:fixed; left:0; top:0; right:0; bottom:0;
   color:var(--pale); font-family: Georgia, "Times New Roman", serif;
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; -webkit-text-size-adjust:100%;
@@ -11,18 +11,31 @@ body {
 }
 [hidden] { display:none !important; }
 
-#top { flex:0 0 auto; height:44px; display:flex; align-items:center; justify-content:center; position:relative; }
+/* un singur ecran la vedere: planșa, colecția sau tabloul mare */
+.view { display:none; flex-direction:column; width:100%; height:100%; }
+body[data-view="board"] #v-board, body[data-view="collection"] #v-collection, body[data-view="viewer"] #v-viewer { display:flex; }
+
+.top { flex:0 0 auto; height:52px; display:flex; align-items:center; justify-content:center; position:relative; padding:0 14px; }
 .brand { color:var(--cream); font-size:16px; letter-spacing:.32em; text-indent:.32em; opacity:.8; }
-#build { position:absolute; right:14px; color:#5E5C66; font-size:11px; }
+.title { color:var(--cream); font-size:18px; letter-spacing:.03em; }
+#build { position:absolute; left:16px; color:#5E5C66; font-size:11px; }
+.pill {
+  appearance:none; -webkit-appearance:none; font:inherit; font-size:15px; letter-spacing:.03em; line-height:1;
+  position:absolute; top:8px; height:36px; padding:0 16px; border-radius:18px;
+  background:transparent; color:var(--pale); border:1.2px solid var(--line); touch-action:manipulation; cursor:pointer;
+}
+.pill.left { left:14px; } .pill.right { right:14px; }
+.pill:active { background:#2A2930; }
 
-#stage { flex:1 1 auto; min-height:0; position:relative; }
+.stage { flex:1 1 auto; min-height:0; position:relative; }
 #board { position:absolute; left:0; top:0; width:100%; height:100%; display:block; touch-action:none; }
+#view { position:absolute; display:block; box-shadow: 0 3px 0 6px rgba(0,0,0,.09), 0 2px 0 4px rgba(0,0,0,.09), 0 1px 0 2px rgba(0,0,0,.09); }
 
-#bar { flex:0 0 auto; padding: 12px 16px 14px; text-align:center; }
-#hint { margin:0; padding: 0 12px 10px; color:var(--hint); font-size:14px; line-height:1.3;
+.bar { flex:0 0 auto; padding: 12px 16px 14px; text-align:center; }
+.hint { margin:0; padding: 0 12px 10px; color:var(--hint); font-size:14px; line-height:1.3;
         white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-#hint.none { visibility:hidden; }
-#buttons { display:flex; justify-content:center; align-items:center; min-height:48px; }
+.hint.none { visibility:hidden; }
+.buttons { display:flex; justify-content:center; align-items:center; min-height:48px; }
 .btn {
   appearance:none; -webkit-appearance:none; font:inherit; font-size:17px; letter-spacing:.03em; line-height:1;
   min-width:124px; min-height:48px; margin:0 8px; padding:0 28px; border-radius:26px; border:0;
@@ -31,5 +44,27 @@ body {
 .btn:active { background:#D9CDB6; }
 .btn.soft { background:transparent; color:var(--pale); border:1.2px solid var(--line); }
 .btn.soft:active { background:#2A2930; }
-/* după Compune, butoanele își împart rândul */
+/* trei butoane care își împart rândul */
 .btn.third { flex:1 1 0; min-width:0; margin:0 5px; padding:0 8px; font-size:15px; max-width:220px; }
+
+/* colecția: două coloane, tablourile în forma lor (3:5) */
+.scroll { flex:1 1 auto; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; touch-action:pan-y; overscroll-behavior:contain; }
+#grid { display:grid; grid-template-columns: 1fr 1fr; gap:12px; padding: 6px 16px 24px; }
+.cell { position:relative; width:100%; background:#1C1B21; overflow:hidden; cursor:pointer; touch-action:pan-y; }
+.cell::before { content:""; display:block; padding-top:166.667%; }   /* 3:5, și pe telefoanele mai vechi */
+.cell img { position:absolute; left:0; top:0; width:100%; height:100%; display:block; opacity:0; transition: opacity .25s ease; }
+.cell img.ready { opacity:1; }
+.empty { margin: 30% 34px 0; color:var(--hint); font-size:16px; line-height:1.5; text-align:center; font-style:italic; }
+
+/* fereastra de întrebat: sus pe ecran, ca tastatura să nu o acopere */
+#modal { position:fixed; left:0; top:0; right:0; bottom:0; background:rgba(8,8,10,.72); z-index:20;
+         display:flex; align-items:flex-start; justify-content:center; padding: max(64px, 14vh) 22px 0; }
+.sheet { width:100%; max-width:380px; background:#1E1D23; border:1.2px solid var(--line); border-radius:18px; padding: 22px 22px 18px; text-align:left; }
+.sheet h2 { margin:0 0 10px; color:var(--cream); font-weight:400; font-size:20px; }
+.sheet p { margin:0 0 16px; color:var(--pale); font-size:15px; line-height:1.5; }
+.sheet input { width:100%; margin: 0 0 18px; padding: 10px 2px; font:inherit; font-size:18px; color:var(--cream);
+               background:transparent; border:0; border-bottom:1.2px solid var(--line); border-radius:0; outline:none;
+               -webkit-user-select:text; user-select:text; }
+.sheet input::placeholder { color:#6E6C76; }
+.m-buttons { display:flex; justify-content:flex-end; }
+.m-buttons .btn { min-width:0; margin:0 0 0 10px; padding:0 22px; min-height:44px; font-size:16px; }

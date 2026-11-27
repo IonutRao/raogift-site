@@ -10,24 +10,69 @@
 <meta name="apple-mobile-web-app-title" content="Seva">
 <title>Seva</title>
 <!-- Seva pentru iPhone, în lucru: interiorul aplicației, făcut pe codul paginii de dar (../g/seva.js). Pagină de probă, nelegată de nicăieri. -->
-<link rel="stylesheet" href="app.css?v=1">
+<link rel="stylesheet" href="app.css?v=2">
 </head>
-<body>
-<header id="top">
-  <span class="brand">SEVA</span>
-  <span id="build"></span>
-</header>
-<div id="stage"><canvas id="board"></canvas></div>
-<footer id="bar">
-  <p id="hint">&nbsp;</p>
-  <div id="buttons">
-    <button id="clear" class="btn soft" type="button" hidden></button>
-    <button id="compose" class="btn" type="button" hidden></button>
-    <button id="another" class="btn soft third" type="button" hidden></button>
-    <button id="again" class="btn soft third" type="button" hidden></button>
+<body data-view="board">
+
+<!-- planșa de desen -->
+<section id="v-board" class="view">
+  <header class="top">
+    <span id="build"></span>
+    <span class="brand">SEVA</span>
+    <button id="to-collection" class="pill right" type="button"></button>
+  </header>
+  <div id="stage" class="stage"><canvas id="board"></canvas></div>
+  <footer class="bar">
+    <p id="hint" class="hint">&nbsp;</p>
+    <div class="buttons">
+      <button id="clear" class="btn soft" type="button" hidden></button>
+      <button id="compose" class="btn" type="button" hidden></button>
+      <button id="keep" class="btn third" type="button" hidden></button>
+      <button id="another" class="btn soft third" type="button" hidden></button>
+      <button id="again" class="btn soft third" type="button" hidden></button>
+      <button id="back-board" class="btn" type="button" hidden></button>
+    </div>
+  </footer>
+</section>
+
+<!-- colecția -->
+<section id="v-collection" class="view">
+  <header class="top">
+    <button id="col-back" class="pill left" type="button"></button>
+    <span id="col-title" class="title"></span>
+  </header>
+  <div id="grid-wrap" class="scroll">
+    <p id="col-empty" class="empty" hidden></p>
+    <div id="grid"></div>
   </div>
-</footer>
+</section>
+
+<!-- un tablou din colecție, mare -->
+<section id="v-viewer" class="view">
+  <div id="view-stage" class="stage"><canvas id="view"></canvas></div>
+  <footer class="bar">
+    <p class="hint none">&nbsp;</p>
+    <div class="buttons">
+      <button id="view-back" class="btn soft third" type="button"></button>
+      <button id="view-delete" class="btn soft third" type="button"></button>
+    </div>
+  </footer>
+</section>
+
+<!-- fereastra de întrebat -->
+<div id="modal" hidden>
+  <div class="sheet" role="dialog" aria-modal="true">
+    <h2 id="m-title"></h2>
+    <p id="m-text"></p>
+    <input id="m-input" type="text" autocomplete="off" autocapitalize="words" autocorrect="off" spellcheck="false" maxlength="40" hidden>
+    <div class="m-buttons">
+      <button id="m-cancel" class="btn soft" type="button" hidden></button>
+      <button id="m-ok" class="btn" type="button"></button>
+    </div>
+  </div>
+</div>
+
 <script src="../g/seva.js?v=8"></script>
-<script src="app.js?v=1"></script>
+<script src="app.js?v=2"></script>
 </body>
 </html>
